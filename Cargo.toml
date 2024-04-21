@@ -1,0 +1,26 @@
+[workspace]
+members = ["store", "event_processor", "squiggle", "notifier"]
+
+[workspace.lints.clippy]
+missing_errors_doc = "allow"
+no_effect_underscore_binding = "allow"
+pedantic = "deny"
+
+
+[package]
+name = "footy-alerts"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+event_processor = { path = "event_processor" }
+notifier = { path = "notifier" }
+squiggle = { path = "squiggle" }
+store = { path = "store" }
+
+tokio = { version = "1.37.0", features = ["macros"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+

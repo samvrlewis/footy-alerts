@@ -1,0 +1,21 @@
+[package]
+name = "squiggle"
+version = "0.1.0"
+edition = "2021"
+
+[lints]
+workspace = true
+
+[dependencies]
+eventsource-client = "0.12.2"
+futures = "0.3.30"
+reqwest = { version = "0.12.4", features = ["json"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_repr = "0.1"
+sqlx = { version = "0.7" }
+thiserror = "1"
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1.40"
+
+
