@@ -14,16 +14,23 @@ pub enum Team {
     Essendon = 5,
     Fremantle = 6,
     Geelong = 7,
+    #[serde(rename(serialize = "Gold Coast"))]
     GoldCoast = 8,
+    #[serde(rename(serialize = "GWS"))]
     GreaterWesternSydney = 9,
     Hawthorn = 10,
     Melbourne = 11,
+    #[serde(rename(serialize = "North Melbourne"))]
     NorthMelbourne = 12,
+    #[serde(rename(serialize = "Port Adelaide"))]
     PortAdelaide = 13,
     Richmond = 14,
+    #[serde(rename(serialize = "St Kilda"))]
     StKilda = 15,
     Sydney = 16,
+    #[serde(rename(serialize = "West Coast"))]
     WestCoast = 17,
+    #[serde(rename(serialize = "Western Bulldogs"))]
     WesternBulldogs = 18,
 }
 
