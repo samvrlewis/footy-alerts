@@ -7,7 +7,8 @@ CREATE TABLE IF NOT EXISTS games
     away_team   INTEGER NOT NULL,
     home_score  INTEGER NOT NULL,
     away_score  INTEGER NOT NULL,
-    timestr     TEXT
+    timestr     TEXT,
+    year        INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS alerts

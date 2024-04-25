@@ -41,7 +41,22 @@ impl Client {
 
     #[tracing::instrument(skip(self), ret, err)]
     pub async fn fetch_game(&self, game_id: u32) -> Result<Game, Error> {
-        let url = format!("https://api.squiggle.com.au/?q=games;game={game_id}");
+        let filter = format!("games;game={game_id}");
+        let mut games_response = self.fetch(filter).await?;
+        let game = games_response.games.pop().ok_or(Error::MissingGame)?;
+        Ok(game)
+    }
+
+    #[tracing::instrument(skip(self), ret, err)]
+    pub async fn fetch_games(&self, round: u16, year: u16) -> Result<Vec<Game>, Error> {
+        let filter = format!("games;year={year};round={round}");
+        let games_response = self.fetch(filter).await?;
+        Ok(games_response.games)
+    }
+
+    #[tracing::instrument(skip(self), ret, err)]
+    async fn fetch(&self, filter: String) -> Result<GamesResponse, Error> {
+        let url = format!("https://api.squiggle.com.au/?q={filter}");
         let resp = self
             .client
             .get(url)
@@ -50,12 +65,10 @@ impl Client {
             .await?;
         let text = resp.text().await?;
 
-        let mut games_response: GamesResponse = serde_json::from_str(&text).inspect_err(
+        let games_response: GamesResponse = serde_json::from_str(&text).inspect_err(
             |err| error!(payload = text, error = ?err, "Couldn't deserialize games response"),
         )?;
-
-        let game = games_response.games.pop().ok_or(Error::MissingGame)?;
-        Ok(game)
+        Ok(games_response)
     }
 }
 

@@ -10,6 +10,7 @@ pub struct Game {
     pub home_score: u16,
     pub away_score: u16,
     pub timestr: String,
+    pub year: u16,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -41,6 +42,7 @@ impl TryFrom<squiggle::rest::types::Game> for Game {
             home_score: value.home_score,
             away_score: value.away_score,
             timestr: time_str,
+            year: value.year,
         })
     }
 }
@@ -59,6 +61,7 @@ impl TryFrom<Game> for squiggle::rest::types::Game {
             home_score: value.home_score,
             away_score: value.away_score,
             timestr: serde_json::from_str(&value.timestr)?,
+            year: value.year,
         })
     }
 }

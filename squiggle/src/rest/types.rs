@@ -1,8 +1,8 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::types::{GameId, Team, TimeStr};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Game {
     pub id: GameId,
     pub round: u16,
@@ -18,6 +18,7 @@ pub struct Game {
     #[serde(rename = "ascore")]
     pub away_score: u16,
     pub timestr: Option<TimeStr>,
+    pub year: u16,
 }
 
 #[cfg(test)]

@@ -1,3 +1,4 @@
+use futures::future::try_join_all;
 use notifier::Notifier;
 use squiggle::{
     event::types::Event,
@@ -120,9 +121,22 @@ impl Processor {
             return Ok(game);
         }
 
+        // We get all games here as an optimisation and so we have a record of all
+        // games for the round as soon as any game from the round starts
         let game = self.rest_client.fetch_game(game_id).await?;
-        let game = self.store.upsert_game(game.try_into()?).await?;
-        Ok(game)
+
+        let round_games = self.rest_client.fetch_games(game.round, game.year).await?;
+        let db_game = self.store.upsert_game(DbGame::try_from(game)?).await?;
+
+        let dbgames = round_games
+            .into_iter()
+            .filter(|game| game.id != game_id)
+            .map(DbGame::try_from)
+            .collect::<Result<Vec<_>, _>>()?;
+
+        try_join_all(dbgames.into_iter().map(|game| self.store.upsert_game(game))).await?;
+
+        Ok(db_game)
     }
 
     #[tracing::instrument(skip(self))]

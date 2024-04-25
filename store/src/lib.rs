@@ -21,6 +21,7 @@ pub enum Error {
     NoGameFound(GameId),
 }
 
+#[derive(Clone)]
 pub struct Store {
     pool: SqlitePool,
 }
@@ -39,8 +40,8 @@ impl Store {
 
         let game: Game = sqlx::query_as(
             r"
-            INSERT OR REPLACE INTO games (id, round, complete, home_team, away_team, home_score, away_score, timestr)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT OR REPLACE INTO games (id, round, complete, home_team, away_team, home_score, away_score, timestr, year)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             RETURNING *
             ",
         )
@@ -52,6 +53,7 @@ impl Store {
         .bind(game.home_score)
         .bind(game.away_score)
         .bind(game.timestr)
+        .bind(game.year)
         .fetch_one(&mut *conn)
         .await?;
 
@@ -72,6 +74,20 @@ impl Store {
         .await?;
 
         Ok(game)
+    }
+
+    pub async fn get_this_round_games(&self) -> Result<Vec<Game>, Error> {
+        let mut conn = self.pool.acquire().await?;
+
+        let games: Vec<Game> = sqlx::query_as(
+            r"
+            SELECT * FROM games
+           ",
+        )
+        .fetch_all(&mut *conn)
+        .await?;
+
+        Ok(games)
     }
 
     #[tracing::instrument(skip(self), ret, err)]

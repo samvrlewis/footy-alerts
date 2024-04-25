@@ -11,6 +11,7 @@ notifier = { path = "../notifier" }
 squiggle = { path = "../squiggle" }
 store = { path = "../store" }
 
+futures = "0.3.30"
 serde_json = "1.0.115"
 thiserror = "1"
 tracing = "0.1"
