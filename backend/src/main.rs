@@ -1,12 +1,6 @@
 use std::error::Error;
 
-use axum::{
-    extract::State,
-    http::StatusCode,
-    response::IntoResponse,
-    routing::{get},
-    Json, Router,
-};
+use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::get, Json, Router};
 use event_processor::processor::Processor;
 use notifier::Notifier;
 use squiggle::{
@@ -14,6 +8,7 @@ use squiggle::{
     rest::Client,
 };
 use store::Store;
+use tower_http::trace::TraceLayer;
 
 async fn event_task(store: Store) -> Result<(), Box<dyn Error + Send + Sync>> {
     let rest_client = Client::new("sam.vr.lewis@gmail.com - footyalerts")?;
