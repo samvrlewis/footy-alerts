@@ -40,8 +40,8 @@ impl Store {
 
         let game: Game = sqlx::query_as(
             r"
-            INSERT OR REPLACE INTO games (id, round, complete, home_team, away_team, home_score, away_score, timestr, year)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT OR REPLACE INTO games (id, round, complete, home_team, away_team, home_score, away_score, timestr, year, date, tz)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             RETURNING *
             ",
         )
@@ -54,6 +54,8 @@ impl Store {
         .bind(game.away_score)
         .bind(game.timestr)
         .bind(game.year)
+        .bind(game.date)
+        .bind(game.tz)
         .fetch_one(&mut *conn)
         .await?;
 

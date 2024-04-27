@@ -6,19 +6,21 @@ use crate::types::{GameId, Team, TimeStr};
 pub struct Game {
     pub id: GameId,
     pub round: u16,
-    #[serde(rename = "hteamid")]
+    #[serde(rename(deserialize = "hteamid"))]
     pub home_team: Team,
-    #[serde(rename = "ateamid")]
+    #[serde(rename(deserialize = "ateamid"))]
     pub away_team: Team,
     pub complete: u8,
-    #[serde(rename = "winnerteamid")]
+    #[serde(rename(deserialize = "winnerteamid"))]
     pub winner: Option<Team>,
-    #[serde(rename = "hscore")]
+    #[serde(rename(deserialize = "hscore"))]
     pub home_score: u16,
-    #[serde(rename = "ascore")]
+    #[serde(rename(deserialize = "ascore"))]
     pub away_score: u16,
     pub timestr: Option<TimeStr>,
     pub year: u16,
+    pub date: String,
+    pub tz: String,
 }
 
 #[cfg(test)]

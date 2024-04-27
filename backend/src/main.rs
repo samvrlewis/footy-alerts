@@ -17,7 +17,7 @@ async fn event_task(store: Store) -> Result<(), Box<dyn Error + Send + Sync>> {
     let event_processor = Processor::new(store, rest_client, notifier);
 
     let event = Event::Complete(CompleteEvent {
-        game_id: 35822,
+        game_id: 35755,
         complete: 99,
     });
 
