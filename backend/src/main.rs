@@ -8,7 +8,10 @@ use squiggle::{
     rest::Client,
 };
 use store::Store;
-use tower_http::trace::TraceLayer;
+use tower_http::{
+    cors::CorsLayer,
+    trace::TraceLayer
+};
 
 async fn event_task(store: Store) -> Result<(), Box<dyn Error + Send + Sync>> {
     let rest_client = Client::new("sam.vr.lewis@gmail.com - footyalerts")?;
@@ -47,7 +50,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .route("/health", get(health))
         .route("/games", get(games))
         .with_state(state)
-        .layer(TraceLayer::new_for_http());
+        .layer(TraceLayer::new_for_http())
+        .layer(CorsLayer::permissive());
 
     // run our app with hyper
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3000").await?;

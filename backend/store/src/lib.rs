@@ -78,6 +78,7 @@ impl Store {
         Ok(game)
     }
 
+    #[tracing::instrument(skip(self), ret, err)]
     pub async fn get_this_round_games(&self) -> Result<Vec<Game>, Error> {
         let mut conn = self.pool.acquire().await?;
 
