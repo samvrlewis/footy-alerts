@@ -12,12 +12,17 @@
 				<img src="whistle.png" class="inline" alt="icon" />&nbsp; Footy Alerts
 			</h1>
 		</div>
-		<div class="col-span-1 grid items-start gap-5 lg:col-span-1">
+		<div class="grid items-start gap-5 lg:col-span-1">
 			<CardsAlertSettings />
-			<CardsAbout />
+			<div class="hidden lg:block">
+				<CardsAbout />
+			</div>
 		</div>
-		<div class="col-span-1 grid items-start gap-5 lg:col-span-1">
+		<div class="grid items-start gap-5 lg:col-span-1">
 			<CardsScores />
+			<div class="lg:hidden">
+				<CardsAbout />
+			</div>
 		</div>
 	</div>
 </div>
