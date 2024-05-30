@@ -9,7 +9,7 @@
 	>
 		<div class="col-span-1 grid items-start gap-5 lg:col-span-2">
 			<h1 class="mb-5 text-xl font-medium md:mb-0">
-				<img src="whistle.png" class="inline" alt="icon" />&nbsp; Footy Alerts
+				<img src="favicon-32x32.png" class="inline" alt="icon" />&nbsp; Footy Alerts
 			</h1>
 		</div>
 		<div class="grid items-start gap-5 lg:col-span-1">
