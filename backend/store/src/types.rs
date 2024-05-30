@@ -67,7 +67,7 @@ impl TryFrom<Game> for squiggle::rest::types::Game {
             timestr: serde_json::from_str(&value.timestr)?,
             year: value.year,
             date: value.date,
-            tz: value.tz
+            tz: value.tz,
         })
     }
 }

@@ -8,10 +8,7 @@ use squiggle::{
     rest::Client,
 };
 use store::Store;
-use tower_http::{
-    cors::CorsLayer,
-    trace::TraceLayer
-};
+use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
 async fn event_task(store: Store) -> Result<(), Box<dyn Error + Send + Sync>> {
     let rest_client = Client::new("sam.vr.lewis@gmail.com - footyalerts")?;
