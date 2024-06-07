@@ -190,7 +190,8 @@ impl Store {
 
         let subscriptions: Vec<Subscription> = sqlx::query_as(
             r"
-            SELECT * FROM subscriptions where (team = ? OR team = ? OR team IS NULL) AND (close_games = ? OR final_scores = ? OR quarter_scores = ?)
+            SELECT * FROM subscriptions
+            WHERE (team = ? OR team = ? OR team IS NULL) AND (close_games = ? OR final_scores = ? OR quarter_scores = ?) AND (active = 1)
            ",
         )
             .bind(home_team)
@@ -202,5 +203,23 @@ impl Store {
             .await?;
 
         Ok(subscriptions)
+    }
+
+    #[tracing::instrument(skip(self), err)]
+    pub async fn delete_subscription(&self, endpoint: &str) -> Result<(), Error> {
+        let mut conn = self.pool.acquire().await?;
+
+        sqlx::query(
+            r"
+            UPDATE subscriptions
+            SET active = 0
+            WHERE endpoint = ?
+            ",
+        )
+        .bind(endpoint)
+        .execute(&mut *conn)
+        .await?;
+
+        Ok(())
     }
 }

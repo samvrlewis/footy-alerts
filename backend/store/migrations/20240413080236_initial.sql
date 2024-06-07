@@ -27,5 +27,6 @@ CREATE TABLE IF NOT EXISTS subscriptions
     quarter_scores  INTEGER NOT NULL,
     endpoint        TEXT PRIMARY KEY NOT NULL,
     p256dh          TEXT NOT NULL,
-    auth            TEXT NOT NULL
+    auth            TEXT NOT NULL,
+    active          INTEGER DEFAULT 1
 );

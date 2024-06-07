@@ -1,5 +1,6 @@
 use std::{fmt, fmt::Formatter};
 
+use futures::{StreamExt, TryFutureExt};
 use squiggle::{
     rest::types::Game,
     types::{Team, TimeStr},
@@ -17,6 +18,14 @@ pub enum Error {
     WebPush(#[from] WebPushError),
     #[error("Store: {0}")]
     Store(#[from] store::Error),
+}
+
+#[derive(Debug, thiserror::Error)]
+enum PushError {
+    #[error("Push failed for endpoint: {1} with error {0}")]
+    Expired(WebPushError, String),
+    #[error("Transient error {0}")]
+    Other(WebPushError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -135,7 +144,6 @@ impl Notifier {
     }
 
     #[tracing::instrument(skip(self), err)]
-
     pub async fn notify(&self, game: Game, notification: Notification) -> Result<(), Error> {
         let db_notification = store::types::Notification::from(&notification);
         let users_to_notify = self
@@ -143,39 +151,60 @@ impl Notifier {
             .get_subscriptions_for_notification(game.home_team, game.away_team, db_notification)
             .await?;
 
-        for user in users_to_notify {
-            let subscription = SubscriptionInfo {
-                endpoint: user.endpoint,
-                keys: SubscriptionKeys {
-                    p256dh: user.p256dh,
-                    auth: user.auth,
-                },
-            };
+        let futures = users_to_notify
+            .into_iter()
+            .map(|user| {
+                let endpoint = user.endpoint.clone();
+                let subscription = SubscriptionInfo {
+                    endpoint: user.endpoint,
+                    keys: SubscriptionKeys {
+                        p256dh: user.p256dh,
+                        auth: user.auth,
+                    },
+                };
 
-            let signature = self
-                .sig_builder
-                .clone()
-                .add_sub_info(&subscription)
-                .build()?;
+                let signature = self
+                    .sig_builder
+                    .clone()
+                    .add_sub_info(&subscription)
+                    .build()
+                    .unwrap();
 
-            //Now add payload and encrypt.
-            let mut builder = WebPushMessageBuilder::new(&subscription);
-            let text = notification.to_notification_text();
-            let content = text.as_bytes();
-            builder.set_payload(ContentEncoding::Aes128Gcm, content);
-            builder.set_vapid_signature(signature);
+                //Now add payload and encrypt.
+                let mut builder = WebPushMessageBuilder::new(&subscription);
+                let text = notification.to_notification_text();
+                let content = text.as_bytes();
+                builder.set_payload(ContentEncoding::Aes128Gcm, content);
+                builder.set_vapid_signature(signature);
 
-            //Finally, send the notification!
-            let _ = self
-                .client
-                .send(builder.build()?)
-                .await
-                .inspect_err(|err| {
-                    tracing::warn!("Error sending {:?}", err);
-                })
-                .inspect(|()| {
-                    tracing::debug!("Sent!");
-                });
+                self.client
+                    .send(builder.build().unwrap())
+                    .map_err(|err| match err {
+                        WebPushError::EndpointNotValid | WebPushError::EndpointNotFound => {
+                            PushError::Expired(err, endpoint)
+                        }
+                        err => PushError::Other(err),
+                    })
+            })
+            .collect::<Vec<_>>();
+
+        let stream = futures::stream::iter(futures).buffer_unordered(10);
+        let results = stream.collect::<Vec<Result<(), PushError>>>().await;
+
+        for res in results {
+            let Err(err) = res else { continue };
+
+            match err {
+                PushError::Expired(err, endpoint) => {
+                    tracing::info!(error=?err, endpoint, "Error indicating endpoint expired");
+                    if let Err(err) = self.store.delete_subscription(&endpoint).await {
+                        tracing::error!(?err, endpoint, "Couldn't delete expired subscription");
+                    }
+                }
+                PushError::Other(err) => {
+                    tracing::warn!(error=?err, "Transient web push error");
+                }
+            }
         }
 
         Ok(())
