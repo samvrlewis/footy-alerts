@@ -39,14 +39,14 @@ struct SharedState {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::DEBUG)
+        .with_max_level(tracing::Level::TRACE)
         .init();
 
     if let Err(err) = dotenvy::dotenv() {
         tracing::info!(error = ?err, "Error loading dotenv" );
     }
 
-    let store = Store::new("sqlite:store/alerts.sqlite").await?;
+    let store = Store::new(&env::var("DATABASE_URL").expect("Database URL not found")).await?;
     let notifier = Notifier::new(
         store.clone(),
         &env::var("NOTIFICATION_PRIVATE_KEY").expect("Priv key not found"),
@@ -77,7 +77,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .layer(TraceLayer::new_for_http())
         .layer(CorsLayer::permissive());
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000").await?;
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
 
     tracing::debug!("listening on {}", listener.local_addr().unwrap());
     axum::serve(listener, app).await?;
