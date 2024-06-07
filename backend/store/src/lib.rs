@@ -84,7 +84,10 @@ impl Store {
 
         let games: Vec<Game> = sqlx::query_as(
             r"
-            SELECT * FROM games
+            SELECT *
+            FROM games
+            WHERE year = (SELECT MAX(year) FROM games)
+              AND round = (SELECT MAX(round) FROM games WHERE year = (SELECT MAX(year) FROM games));
            ",
         )
         .fetch_all(&mut *conn)
