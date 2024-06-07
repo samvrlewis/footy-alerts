@@ -1,9 +1,183 @@
+use std::{fmt, fmt::Formatter};
+
+use squiggle::{
+    rest::types::Game,
+    types::{Team, TimeStr},
+};
+use store::Store;
+use web_push::{
+    ContentEncoding, IsahcWebPushClient, PartialVapidSignatureBuilder, SubscriptionInfo,
+    SubscriptionKeys, VapidSignatureBuilder, WebPushClient, WebPushError, WebPushMessageBuilder,
+    URL_SAFE_NO_PAD,
+};
+
 #[derive(Debug, thiserror::Error)]
-pub enum Error {}
-pub struct Notifier;
+pub enum Error {
+    #[error("Web push: {0}")]
+    WebPush(#[from] WebPushError),
+    #[error("Store: {0}")]
+    Store(#[from] store::Error),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum InitError {
+    #[error("sig builder: {0}")]
+    SigBuilder(WebPushError),
+    #[error("client: {0}")]
+    Client(WebPushError),
+}
+pub struct Notifier {
+    store: Store,
+    sig_builder: PartialVapidSignatureBuilder,
+    client: IsahcWebPushClient,
+}
+
+#[derive(Debug)]
+pub enum Quarter {
+    First,
+    Second,
+    Third,
+}
+
+impl fmt::Display for Quarter {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Quarter::First => write!(f, "Q1"),
+            Quarter::Second => write!(f, "Q2"),
+            Quarter::Third => write!(f, "Q3"),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum Notification {
+    EndOfQuarter {
+        quarter: Quarter,
+        home_team: Team,
+        away_team: Team,
+        home_score: u16,
+        away_score: u16,
+    },
+    EndOfGame {
+        home_team: Team,
+        away_team: Team,
+        home_score: u16,
+        away_score: u16,
+    },
+    CloseGame {
+        home_team: Team,
+        away_team: Team,
+        home_score: u16,
+        away_score: u16,
+        time_str: TimeStr,
+    },
+}
+
+impl Notification {
+    fn to_notification_text(&self) -> String {
+        match self {
+            Notification::EndOfQuarter {
+                quarter,
+                home_team,
+                away_team,
+                home_score,
+                away_score,
+            } => {
+                format!("End of {quarter}: {home_team} {home_score} - {away_team} {away_score}")
+            }
+            Notification::EndOfGame {
+                home_team,
+                away_team,
+                home_score,
+                away_score,
+            } => {
+                format!("End of game: {home_team} {home_score} - {away_team} {away_score}")
+            }
+            Notification::CloseGame {
+                home_team,
+                away_team,
+                home_score,
+                away_score,
+                time_str,
+            } => {
+                format!(
+                    "Close game ({time_str}): {home_team} {home_score} - {away_team} {away_score}"
+                )
+            }
+        }
+    }
+}
+
+impl From<&Notification> for store::types::Notification {
+    fn from(value: &Notification) -> Self {
+        match value {
+            Notification::EndOfQuarter { quarter, .. } => match quarter {
+                Quarter::First => store::types::Notification::EndOfFirstQuarter,
+                Quarter::Second => store::types::Notification::EndOfSecondQuarter,
+                Quarter::Third => store::types::Notification::EndOfThirdQuarter,
+            },
+            Notification::EndOfGame { .. } => store::types::Notification::EndOfGame,
+            Notification::CloseGame { .. } => store::types::Notification::CloseGame,
+        }
+    }
+}
 
 impl Notifier {
-    pub fn notify(&self, _user_id: u32) -> Result<(), Error> {
-        todo!()
+    pub fn new(store: Store, private_key: &str) -> Result<Self, InitError> {
+        let sig_builder = VapidSignatureBuilder::from_base64_no_sub(private_key, URL_SAFE_NO_PAD)
+            .map_err(InitError::SigBuilder)?;
+        let client = IsahcWebPushClient::new().map_err(InitError::Client)?;
+        Ok(Self {
+            store,
+            sig_builder,
+            client,
+        })
+    }
+
+    #[tracing::instrument(skip(self), err)]
+
+    pub async fn notify(&self, game: Game, notification: Notification) -> Result<(), Error> {
+        let db_notification = store::types::Notification::from(&notification);
+        let users_to_notify = self
+            .store
+            .get_subscriptions_for_notification(game.home_team, game.away_team, db_notification)
+            .await?;
+
+        for user in users_to_notify {
+            let subscription = SubscriptionInfo {
+                endpoint: user.endpoint,
+                keys: SubscriptionKeys {
+                    p256dh: user.p256dh,
+                    auth: user.auth,
+                },
+            };
+
+            let signature = self
+                .sig_builder
+                .clone()
+                .add_sub_info(&subscription)
+                .build()?;
+
+            //Now add payload and encrypt.
+            let mut builder = WebPushMessageBuilder::new(&subscription);
+            let text = notification.to_notification_text();
+            let content = text.as_bytes();
+            builder.set_payload(ContentEncoding::Aes128Gcm, content);
+            builder.set_vapid_signature(signature);
+
+            //Finally, send the notification!
+            let _ = self
+                .client
+                .send(builder.build()?)
+                .await
+                .inspect_err(|err| {
+                    tracing::warn!("Error sending {:?}", err);
+                })
+                .inspect(|()| {
+                    tracing::debug!("Sent!");
+                });
+        }
+
+        Ok(())
     }
 }

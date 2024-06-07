@@ -1,14 +1,11 @@
 use futures::future::try_join_all;
-use notifier::Notifier;
+use notifier::{Notification, Notifier, Quarter};
 use squiggle::{
     event::types::Event,
     rest::{types::Game, Client},
-    types::GameId,
+    types::{GameId, TimeStr},
 };
-use store::{
-    types::{Game as DbGame, Notification},
-    Store,
-};
+use store::{types::Game as DbGame, Store};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -36,10 +33,47 @@ const CLOSE_GAME_SCORE_THRESHOLD: i32 = 15;
 
 #[tracing::instrument(ret)]
 pub fn maybe_notification(game: &Game) -> Option<Notification> {
-    if game.complete > CLOSE_GAME_COMPLETION_THRESHOLD {
+    if game.complete > CLOSE_GAME_COMPLETION_THRESHOLD && game.complete < 100 {
         let close_game = i32::from(game.home_score) - i32::from(game.away_score);
         let close_game = close_game.abs() <= CLOSE_GAME_SCORE_THRESHOLD;
-        close_game.then_some(Notification::CloseGame)
+        close_game.then_some(Notification::CloseGame {
+            time_str: game.timestr.clone().unwrap(),
+            home_team: game.home_team.clone(),
+            away_team: game.away_team.clone(),
+            home_score: game.home_score,
+            away_score: game.away_score,
+        })
+    } else if let Some(timestr) = &game.timestr {
+        match timestr {
+            TimeStr::EndOfFirstQuarter => Some(Notification::EndOfQuarter {
+                quarter: Quarter::First,
+                home_team: game.home_team.clone(),
+                away_team: game.away_team.clone(),
+                home_score: game.home_score,
+                away_score: game.away_score,
+            }),
+            TimeStr::EndOfSecondQuarter => Some(Notification::EndOfQuarter {
+                quarter: Quarter::Second,
+                home_team: game.home_team.clone(),
+                away_team: game.away_team.clone(),
+                home_score: game.home_score,
+                away_score: game.away_score,
+            }),
+            TimeStr::EndOfThirdQuarter => Some(Notification::EndOfQuarter {
+                quarter: Quarter::Third,
+                home_team: game.home_team.clone(),
+                away_team: game.away_team.clone(),
+                home_score: game.home_score,
+                away_score: game.away_score,
+            }),
+            TimeStr::EndOfGame => Some(Notification::EndOfGame {
+                home_team: game.home_team.clone(),
+                away_team: game.away_team.clone(),
+                home_score: game.home_score,
+                away_score: game.away_score,
+            }),
+            TimeStr::Other(_) => None,
+        }
     } else {
         None
     }
@@ -87,17 +121,19 @@ impl Processor {
         let game = patch_game_with_event(Game::try_from(db_game)?, event);
         let maybe_notification = maybe_notification(&game);
 
-        self.update_game(game).await?;
+        self.update_game(game.clone()).await?;
 
         // see if we should send a notification
         let Some(notification) = maybe_notification else {
             return Ok(());
         };
 
+        let db_notification = store::types::Notification::from(&notification);
+
         // check if we've already sent a notification
         if self
             .store
-            .game_has_notification(game_id, notification)
+            .game_has_notification(game_id, db_notification)
             .await?
         {
             return Ok(());
@@ -105,10 +141,10 @@ impl Processor {
 
         // mark the notification as sent
         self.store
-            .record_notification(game_id, notification)
+            .record_notification(game_id, db_notification)
             .await?;
 
-        self.notifier.notify(0)?;
+        self.notifier.notify(game, notification).await?;
 
         return Ok(());
     }

@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::types::{GameId, Team, TimeStr};
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Game {
     pub id: GameId,
     pub round: u16,

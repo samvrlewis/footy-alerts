@@ -1,9 +1,9 @@
 pub mod types;
 
 use sqlx::{migrate::MigrateError, SqlitePool};
-use squiggle::types::GameId;
+use squiggle::types::{GameId, Team};
 
-use crate::types::{Game, Notification};
+use crate::types::{Game, Notification, Subscription};
 
 #[derive(Debug, thiserror::Error)]
 pub enum InitError {
@@ -134,5 +134,73 @@ impl Store {
         .await?;
 
         Ok(())
+    }
+
+    #[tracing::instrument(skip(self), err)]
+    pub async fn add_subscription(&self, subscription: Subscription) -> Result<(), Error> {
+        let mut conn = self.pool.acquire().await?;
+
+        sqlx::query(
+            r"
+            INSERT OR REPLACE INTO subscriptions (team, close_games, final_scores,
+                            quarter_scores, endpoint, p256dh, auth)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ",
+        )
+        .bind(subscription.team)
+        .bind(subscription.close_games)
+        .bind(subscription.final_scores)
+        .bind(subscription.quarter_scores)
+        .bind(subscription.endpoint)
+        .bind(subscription.p256dh)
+        .bind(subscription.auth)
+        .execute(&mut *conn)
+        .await?;
+
+        Ok(())
+    }
+
+    #[tracing::instrument(skip(self), err)]
+    pub async fn get_subscription_for_endpoint(
+        &self,
+        endpoint: &str,
+    ) -> Result<Option<Subscription>, Error> {
+        let mut conn = self.pool.acquire().await?;
+
+        let subscription: Option<Subscription> = sqlx::query_as(
+            r"
+            SELECT * FROM subscriptions where endpoint = ?
+           ",
+        )
+        .bind(endpoint)
+        .fetch_optional(&mut *conn)
+        .await?;
+
+        Ok(subscription)
+    }
+
+    #[tracing::instrument(skip(self), err)]
+    pub async fn get_subscriptions_for_notification(
+        &self,
+        home_team: Team,
+        away_team: Team,
+        notification: Notification,
+    ) -> Result<Vec<Subscription>, Error> {
+        let mut conn = self.pool.acquire().await?;
+
+        let subscriptions: Vec<Subscription> = sqlx::query_as(
+            r"
+            SELECT * FROM subscriptions where (team = ? OR team = ? OR team IS NULL) AND (close_games = ? OR final_scores = ? OR quarter_scores = ?)
+           ",
+        )
+            .bind(home_team)
+            .bind(away_team)
+            .bind(notification.is_close_game_notification())
+            .bind(notification.is_full_game_notification())
+            .bind(notification.is_quarter_notification())
+            .fetch_all(&mut *conn)
+            .await?;
+
+        Ok(subscriptions)
     }
 }

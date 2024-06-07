@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use squiggle::types::{GameId, Team, TimeStr};
 
 #[derive(Debug, sqlx::FromRow)]
@@ -23,6 +24,30 @@ pub enum Notification {
     EndOfThirdQuarter,
     EndOfGame,
     CloseGame,
+}
+
+impl Notification {
+    #[must_use]
+    pub fn is_quarter_notification(&self) -> bool {
+        match self {
+            Notification::EndOfFirstQuarter
+            | Notification::EndOfSecondQuarter
+            | Notification::EndOfThirdQuarter
+            | Notification::EndOfGame => true,
+            Notification::CloseGame => false,
+        }
+    }
+
+    #[must_use]
+
+    pub fn is_full_game_notification(&self) -> bool {
+        matches!(self, Notification::EndOfGame)
+    }
+
+    #[must_use]
+    pub fn is_close_game_notification(&self) -> bool {
+        matches!(self, Notification::CloseGame)
+    }
 }
 
 impl TryFrom<squiggle::rest::types::Game> for Game {
@@ -70,4 +95,15 @@ impl TryFrom<Game> for squiggle::rest::types::Game {
             tz: value.tz,
         })
     }
+}
+
+#[derive(Debug, sqlx::FromRow, Deserialize, Serialize)]
+pub struct Subscription {
+    pub team: Option<Team>,
+    pub close_games: bool,
+    pub final_scores: bool,
+    pub quarter_scores: bool,
+    pub endpoint: String,
+    pub p256dh: String,
+    pub auth: String,
 }

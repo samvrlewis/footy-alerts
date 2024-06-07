@@ -19,3 +19,13 @@ CREATE TABLE IF NOT EXISTS alerts
     notification INTEGER NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS subscriptions
+(
+    team            INTEGER,
+    close_games     INTEGER NOT NULL,
+    final_scores    INTEGER NOT NULL,
+    quarter_scores  INTEGER NOT NULL,
+    endpoint        TEXT PRIMARY KEY NOT NULL,
+    p256dh          TEXT NOT NULL,
+    auth            TEXT NOT NULL
+);

@@ -7,5 +7,11 @@ edition = "2021"
 workspace = true
 
 [dependencies]
-thiserror = "1"
+squiggle = { path = "../squiggle" }
+store = { path = "../store" }
 
+thiserror = "1"
+web-push = "0.10.1"
+serde = { version = "1.0.197", features = ["derive"] }
+base64 = "0.21.7"
+tracing = "0.1.40"
