@@ -9,7 +9,7 @@
 		class="items-start justify-center gap-x-5 rounded-lg p-4 sm:p-6 md:grid md:grid-cols-1 md:p-8 lg:grid-cols-2 xl:grid-cols-2"
 	>
 		<div class="col-span-1 mb-4 grid items-start gap-5 lg:col-span-2">
-			<h1 class="mb-5 text-xl font-medium md:mb-0">
+			<h1 class="text-xl font-medium md:mb-0">
 				<img src="favicon-32x32.png" class="inline" alt="icon" />&nbsp; Footy Alerts
 			</h1>
 		</div>
