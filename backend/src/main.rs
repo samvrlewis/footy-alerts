@@ -1,4 +1,4 @@
-use std::{env, error::Error};
+use std::{env, error::Error, time::Duration};
 
 use axum::{
     extract::{Query, State},
@@ -8,28 +8,24 @@ use axum::{
     Json, Router,
 };
 use event_processor::processor::Processor;
+use futures_util::StreamExt;
 use notifier::Notifier;
 use serde::Deserialize;
-use squiggle::{
-    event::types::{Event, TimeStrEvent},
-    rest::Client,
-    types::{Team, TimeStr},
-};
+use squiggle::{event, rest, types::Team};
 use store::Store;
+use tokio::time::sleep;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
 async fn event_task(store: Store, notifier: Notifier) -> Result<(), Box<dyn Error + Send + Sync>> {
-    let rest_client = Client::new("sam.vr.lewis@gmail.com - footyalerts")?;
-
+    let rest_client = rest::Client::new("sam.vr.lewis@gmail.com - footyalerts")?;
+    let event_client = event::client::Client::new("sam.vr.lewis@gmail.com - footyalerts")?;
     let event_processor = Processor::new(store, rest_client, notifier);
 
-    let event = Event::TimeStr(TimeStrEvent {
-        game_id: 35805,
-
-        timestr: TimeStr::EndOfFirstQuarter,
-    });
-
-    event_processor.process_event(event).await?;
+    while let Some(Ok(event)) = event_client.stream().next().await {
+        if let Err(err) = event_processor.process_event(event).await {
+            tracing::error!(?err, "Error ingesting event");
+        }
+    }
 
     Ok(())
 }
@@ -60,9 +56,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let event_task_notifier = notifier.clone();
 
     let _handle = tokio::spawn(async move {
-        let res = event_task(event_task_store, event_task_notifier).await;
+        loop {
+            let res = event_task(event_task_store.clone(), event_task_notifier.clone()).await;
+            tracing::warn!("Event loop finished with {:?}", res);
 
-        tracing::debug!("Event loop finished with {:?}", res);
+            // naive backoff for now, so we don't hammer squiggle
+            sleep(Duration::from_secs(30)).await;
+        }
     });
 
     let state = SharedState { store, notifier };

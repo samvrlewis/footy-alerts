@@ -29,6 +29,10 @@ impl Client {
             };
 
             if let SSE::Event(raw_event) = event {
+                if raw_event.data == "\"Hello and welcome to the event channel for ALL events.\"" {
+                    return None;
+                }
+
                 let event: Result<Event, _> = serde_json::from_str(&raw_event.data);
 
                 match event {
