@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { CardsAlertSettings, CardsScores, CardsAbout } from './(components)/index.js';
 	import { Button } from '$lib/components/ui/button';
+	import { Toaster } from '$lib/components/ui/sonner';
 </script>
 
 <div class="container mx-auto px-4 sm:px-6 md:max-w-7xl md:px-8">
@@ -26,3 +27,5 @@
 		</div>
 	</div>
 </div>
+
+<Toaster richColors position="top-center" closeButton />

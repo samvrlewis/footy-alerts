@@ -37,6 +37,7 @@ async fn event_task(store: Store, notifier: Notifier) -> Result<(), Box<dyn Erro
 #[derive(Clone)]
 struct SharedState {
     store: Store,
+    notifier: Notifier
 }
 
 #[tokio::main]
@@ -56,20 +57,22 @@ async fn main() -> Result<(), Box<dyn Error>> {
     )?;
 
     let event_task_store = store.clone();
+    let event_task_notifier = notifier.clone();
 
     let _handle = tokio::spawn(async move {
-        let res = event_task(event_task_store, notifier).await;
+        let res = event_task(event_task_store, event_task_notifier).await;
 
         tracing::debug!("Event loop finished with {:?}", res);
     });
 
-    let state = SharedState { store };
+    let state = SharedState { store, notifier };
 
     let app = Router::new()
         .route("/health", get(health))
         .route("/games", get(games))
         .route("/subscription", get(get_subscription))
         .route("/subscription", post(create_subscription))
+        .route("/test_notification", post(test_notification))
         .with_state(state)
         .layer(TraceLayer::new_for_http())
         .layer(CorsLayer::permissive());
@@ -167,4 +170,16 @@ async fn create_subscription(
         .unwrap();
 
     (StatusCode::CREATED, Json(()))
+}
+
+async fn test_notification(
+    State(state): State<SharedState>,
+    Query(params): Query<Params>,
+) -> impl IntoResponse {
+    let endpoint = urlencoding::decode(&params.endpoint).unwrap();
+    state
+        .notifier.send_test_notification(&endpoint).await.unwrap();
+
+    tracing::debug!("Sending test notification for {}", endpoint);
+    (StatusCode::OK, Json(()))
 }

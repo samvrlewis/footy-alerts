@@ -8,13 +8,13 @@
 	import * as Select from '$lib/components/ui/select';
 	import { PUBLIC_API_BASE_URL } from '$env/static/public';
 	import { onMount } from 'svelte';
-	import { Toaster } from '$lib/components/ui/sonner';
 	import { toast } from 'svelte-sonner';
 
 	const dispatch = createEventDispatcher();
 
 	const defaultTeam = { label: 'All', value: 'null' };
 
+	let notificationsEndpoint: String | null = null;
 	let closeGamesEnabled = true;
 	let quarterScoresEnabled = false;
 	let finalScoresEnabled = true;
@@ -57,7 +57,6 @@
 				closeGamesEnabled = data.close_games;
 				quarterScoresEnabled = data.quarter_scores;
 				finalScoresEnabled = data.final_scores;
-				//selectedTeam = data.team;
 
 				for (const option of options) {
 					if (option.label === data.team) {
@@ -66,9 +65,35 @@
 						break; // Exit loop once a match is found
 					}
 				}
+				notificationsEndpoint = sub.endpoint;
 			}
 		}
 	});
+
+	async function sendTestNotification() {
+		let encodedUrl = encodeURIComponent(String(notificationsEndpoint));
+
+		try {
+			const response = await fetch(
+				`${PUBLIC_API_BASE_URL}/test_notification?endpoint=${encodedUrl}`,
+				{
+					method: 'POST'
+				}
+			);
+
+			if (response.ok) {
+				toast.success('Notification sent!');
+			} else {
+				toast.error('API error sending test notification', {
+					description: String(response.statusText)
+				});
+			}
+		} catch (error) {
+			toast.error('API error sending test notification', {
+				description: String(error)
+			});
+		}
+	}
 
 	async function acceptNotifications() {
 		const permission = await Notification.requestPermission();
@@ -92,8 +117,6 @@
 					'BKZ7f_R7nwROpGQZQMD95KiySA27zUTMFAHIbwyGdhTj0QxK_bYtjJcpj-o5fETke8Gf6X7HpF89PumZ1D1Rdqw'
 			});
 		}
-
-		console.log(JSON.stringify(sub));
 
 		let team: number | null = parseInt(selectedTeam.value);
 		if (isNaN(team)) {
@@ -124,6 +147,7 @@
 				});
 			} else {
 				toast.success('Successfully subscribed!');
+				notificationsEndpoint = sub.endpoint;
 			}
 		} catch (error) {
 			toast.error('API error subscribing', {
@@ -143,7 +167,7 @@
 			<Label for="full_time" class="flex flex-col space-y-1">
 				<span>Team</span>
 				<span class="text-xs font-normal leading-snug text-muted-foreground">
-					Notifications for Teams
+					Notifications for teams
 				</span>
 			</Label>
 			<Select.Root bind:selected={selectedTeam}>
@@ -203,7 +227,10 @@
 				</AlertDialog.Footer>
 			</AlertDialog.Content>
 		</AlertDialog.Root>
+		{#if notificationsEndpoint}
+			<Button class="ml-2" variant="outline" on:click={sendTestNotification}
+				>Send test notification</Button
+			>
+		{/if}
 	</Card.Footer>
 </Card.Root>
-
-<Toaster richColors position="top-center" closeButton />

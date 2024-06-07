@@ -11,6 +11,7 @@ use web_push::{
     SubscriptionKeys, VapidSignatureBuilder, WebPushClient, WebPushError, WebPushMessageBuilder,
     URL_SAFE_NO_PAD,
 };
+use store::types::Subscription;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -35,6 +36,8 @@ pub enum InitError {
     #[error("client: {0}")]
     Client(WebPushError),
 }
+
+#[derive(Clone)]
 pub struct Notifier {
     store: Store,
     sig_builder: PartialVapidSignatureBuilder,
@@ -151,40 +154,13 @@ impl Notifier {
             .get_subscriptions_for_notification(game.home_team, game.away_team, db_notification)
             .await?;
 
+        let notification = notification.to_notification_text();
+
         let futures = users_to_notify
             .into_iter()
-            .map(|user| {
-                let endpoint = user.endpoint.clone();
-                let subscription = SubscriptionInfo {
-                    endpoint: user.endpoint,
-                    keys: SubscriptionKeys {
-                        p256dh: user.p256dh,
-                        auth: user.auth,
-                    },
-                };
+            .map(|user| async {
 
-                let signature = self
-                    .sig_builder
-                    .clone()
-                    .add_sub_info(&subscription)
-                    .build()
-                    .unwrap();
-
-                //Now add payload and encrypt.
-                let mut builder = WebPushMessageBuilder::new(&subscription);
-                let text = notification.to_notification_text();
-                let content = text.as_bytes();
-                builder.set_payload(ContentEncoding::Aes128Gcm, content);
-                builder.set_vapid_signature(signature);
-
-                self.client
-                    .send(builder.build().unwrap())
-                    .map_err(|err| match err {
-                        WebPushError::EndpointNotValid | WebPushError::EndpointNotFound => {
-                            PushError::Expired(err, endpoint)
-                        }
-                        err => PushError::Other(err),
-                    })
+                self.send_user_notification(&notification, user).await
             })
             .collect::<Vec<_>>();
 
@@ -206,6 +182,58 @@ impl Notifier {
                 }
             }
         }
+
+        Ok(())
+    }
+
+    #[tracing::instrument(skip(self), err)]
+
+    async fn send_user_notification(&self, notification: &str, user: Subscription) -> Result<(), PushError> {
+        let endpoint = user.endpoint.clone();
+        let subscription = SubscriptionInfo {
+            endpoint: user.endpoint,
+            keys: SubscriptionKeys {
+                p256dh: user.p256dh,
+                auth: user.auth,
+            },
+        };
+
+        let signature = self
+            .sig_builder
+            .clone()
+            .add_sub_info(&subscription)
+            .build()
+            .unwrap();
+
+        //Now add payload and encrypt.
+        let mut builder = WebPushMessageBuilder::new(&subscription);
+        let content = notification.as_bytes();
+        builder.set_payload(ContentEncoding::Aes128Gcm, content);
+        builder.set_vapid_signature(signature);
+
+        self.client
+            .send(builder.build().unwrap())
+            .map_err(|err| match err {
+                WebPushError::EndpointNotValid | WebPushError::EndpointNotFound => {
+                    PushError::Expired(err, endpoint)
+                }
+                err => PushError::Other(err),
+            }).await
+    }
+
+    #[tracing::instrument(skip(self), err)]
+    pub async fn send_test_notification(&self, endpoint: &str) -> Result<(), Error> {
+        let maybe_subscription = self.store.get_subscription_for_endpoint(endpoint).await?;
+        let Some(subscription) = maybe_subscription else {
+            tracing::info!(endpoint, "Couldn't find subscription");
+            return Ok(());
+        };
+
+        let utc_now = chrono::Utc::now();
+        let aest_now = utc_now.with_timezone(&chrono_tz::Australia::Melbourne).format("%Y-%m-%d %H:%M:%S %Z");
+        let notification = format!("Test notification from FootyAlerts ({aest_now})");
+
+        self.send_user_notification(&notification, subscription).await.unwrap();
 
         Ok(())
     }
