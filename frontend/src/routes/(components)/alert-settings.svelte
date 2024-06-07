@@ -100,7 +100,11 @@
 
 		if (permission != 'granted') {
 			toast.warning('Push notification permission error', {
-				description: 'Please enable push notifications for FootyAlerts.'
+				description: 'Please enable push notifications for FootyAlerts.',
+				action: {
+					label: 'Learn more',
+					onClick: () => window.open('https://support.google.com/chrome/answer/3220216', '_blank')
+				}
 			});
 		}
 
