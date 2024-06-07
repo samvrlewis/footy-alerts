@@ -8,6 +8,8 @@
 	import * as Select from '$lib/components/ui/select';
 	import { PUBLIC_API_BASE_URL } from '$env/static/public';
 	import { onMount } from 'svelte';
+	import { Toaster } from '$lib/components/ui/sonner';
+	import { toast } from 'svelte-sonner';
 
 	const dispatch = createEventDispatcher();
 
@@ -70,12 +72,18 @@
 
 	async function acceptNotifications() {
 		const permission = await Notification.requestPermission();
+
+		if (permission != 'granted') {
+			toast.warning('Push notification permission error', {
+				description: 'Please enable push notifications for FootyAlerts.'
+			});
+		}
+
 		const reg = await navigator.serviceWorker.ready;
 		let sub;
 		sub = await reg.pushManager.getSubscription();
 		console.log(sub);
 		console.log('Accepted!');
-		//const notification = new Notification('Hi there!');
 		if (!sub) {
 			// Fetch VAPID public key
 			sub = await reg.pushManager.subscribe({
@@ -111,11 +119,16 @@
 				body: JSON.stringify(data)
 			});
 			if (!response.ok) {
-				throw new Error('Failed to save preferences');
+				toast.error('API error subscribing', {
+					description: response.statusText
+				});
+			} else {
+				toast.success('Successfully subscribed!');
 			}
-			console.log('Preferences saved successfully');
 		} catch (error) {
-			console.error('Error saving preferences:', error);
+			toast.error('API error subscribing', {
+				description: String(error)
+			});
 		}
 	}
 </script>
@@ -192,3 +205,5 @@
 		</AlertDialog.Root>
 	</Card.Footer>
 </Card.Root>
+
+<Toaster richColors position="top-center" closeButton />
