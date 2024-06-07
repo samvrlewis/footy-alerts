@@ -5,13 +5,12 @@ use squiggle::{
     rest::types::Game,
     types::{Team, TimeStr},
 };
-use store::Store;
+use store::{types::Subscription, Store};
 use web_push::{
     ContentEncoding, IsahcWebPushClient, PartialVapidSignatureBuilder, SubscriptionInfo,
     SubscriptionKeys, VapidSignatureBuilder, WebPushClient, WebPushError, WebPushMessageBuilder,
     URL_SAFE_NO_PAD,
 };
-use store::types::Subscription;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -158,10 +157,7 @@ impl Notifier {
 
         let futures = users_to_notify
             .into_iter()
-            .map(|user| async {
-
-                self.send_user_notification(&notification, user).await
-            })
+            .map(|user| async { self.send_user_notification(&notification, user).await })
             .collect::<Vec<_>>();
 
         let stream = futures::stream::iter(futures).buffer_unordered(10);
@@ -188,7 +184,11 @@ impl Notifier {
 
     #[tracing::instrument(skip(self), err)]
 
-    async fn send_user_notification(&self, notification: &str, user: Subscription) -> Result<(), PushError> {
+    async fn send_user_notification(
+        &self,
+        notification: &str,
+        user: Subscription,
+    ) -> Result<(), PushError> {
         let endpoint = user.endpoint.clone();
         let subscription = SubscriptionInfo {
             endpoint: user.endpoint,
@@ -218,7 +218,8 @@ impl Notifier {
                     PushError::Expired(err, endpoint)
                 }
                 err => PushError::Other(err),
-            }).await
+            })
+            .await
     }
 
     #[tracing::instrument(skip(self), err)]
@@ -230,10 +231,14 @@ impl Notifier {
         };
 
         let utc_now = chrono::Utc::now();
-        let aest_now = utc_now.with_timezone(&chrono_tz::Australia::Melbourne).format("%Y-%m-%d %H:%M:%S %Z");
+        let aest_now = utc_now
+            .with_timezone(&chrono_tz::Australia::Melbourne)
+            .format("%Y-%m-%d %H:%M:%S %Z");
         let notification = format!("Test notification from FootyAlerts ({aest_now})");
 
-        self.send_user_notification(&notification, subscription).await.unwrap();
+        self.send_user_notification(&notification, subscription)
+            .await
+            .unwrap();
 
         Ok(())
     }

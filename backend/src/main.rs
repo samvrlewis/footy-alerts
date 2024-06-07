@@ -37,7 +37,7 @@ async fn event_task(store: Store, notifier: Notifier) -> Result<(), Box<dyn Erro
 #[derive(Clone)]
 struct SharedState {
     store: Store,
-    notifier: Notifier
+    notifier: Notifier,
 }
 
 #[tokio::main]
@@ -178,7 +178,10 @@ async fn test_notification(
 ) -> impl IntoResponse {
     let endpoint = urlencoding::decode(&params.endpoint).unwrap();
     state
-        .notifier.send_test_notification(&endpoint).await.unwrap();
+        .notifier
+        .send_test_notification(&endpoint)
+        .await
+        .unwrap();
 
     tracing::debug!("Sending test notification for {}", endpoint);
     (StatusCode::OK, Json(()))
