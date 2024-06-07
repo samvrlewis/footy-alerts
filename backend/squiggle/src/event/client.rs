@@ -1,67 +1,73 @@
-use eventsource_client::SSE;
-use futures::{stream::BoxStream, StreamExt};
-use tracing::warn;
+use async_stream::stream;
+use futures::{Stream, StreamExt};
+use reqwest::Method;
+use reqwest_eventsource::{CannotCloneRequestError, EventSource, RequestBuilderExt};
+use tracing::{error, info, warn};
 
 use super::types::Event;
 
 pub struct Client {
-    event_client: Box<dyn eventsource_client::Client>,
+    event_client: EventSource,
 }
 
 impl Client {
-    pub fn new(user_agent: &str) -> Result<Self, eventsource_client::Error> {
-        let client =
-            eventsource_client::ClientBuilder::for_url("https://api.squiggle.com.au/sse/events")?
-                .header("user-agent", user_agent)?
-                .build();
+    pub fn new(user_agent: &str) -> Result<Self, CannotCloneRequestError> {
+        let client = reqwest::Client::new()
+            .request(Method::GET, "https://api.squiggle.com.au/sse/events")
+            .header("user-agent", user_agent);
+
+        let client = client.eventsource()?;
 
         Ok(Self {
-            event_client: Box::new(client),
+            event_client: client,
         })
     }
 
-    #[must_use]
-    pub fn stream(&self) -> BoxStream<Result<Event, eventsource_client::Error>> {
-        let stream = self.event_client.stream().filter_map(|event| async {
-            let event = match event {
-                Ok(event) => event,
-                Err(err) => return Some(Err(err)),
-            };
-
-            if let SSE::Event(raw_event) = event {
-                if raw_event.data == "\"Hello and welcome to the event channel for ALL events.\"" {
-                    return None;
-                }
-
-                let event: Result<Event, _> = serde_json::from_str(&raw_event.data);
-
+    pub fn stream(&mut self) -> impl Stream<Item = Result<Event, reqwest_eventsource::Error>> + '_ {
+        stream! {
+            while let Some(event) = self.event_client.next().await {
                 match event {
-                    Ok(event) => return Some(Ok(event)),
+                    Ok(reqwest_eventsource::Event::Open) => println!("Connection Open!"),
+                    Ok(reqwest_eventsource::Event::Message(message)) => {
+                        if message.data == "\"Hello and welcome to the event channel for ALL events.\"" {
+                            info!("Received welcome message");
+                            continue
+                        }
+
+                        let event: Result<Event, _> = serde_json::from_str(&message.data);
+
+                        match event {
+                            Ok(event) => yield Ok(event),
+                            Err(err) => {
+                                warn!(
+                                payload = ?message.data, error = ?err,
+                                "Unable to deserialize event"
+                                );
+                            }
+                        }
+                    }
                     Err(err) => {
-                        warn!(
-                            payload = ?raw_event.data, error = ?err,
-                            "Unable to deserialize event"
-                        );
+                        error!("Error: {}", err);
+                        yield Err(err)
                     }
                 }
+
+
             }
-
-            None
-        });
-        Box::pin(stream)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    //#[tokio::test]
-    async fn it_works() {
-        let client = Client::new().expect("Client doesn't build");
-
-        while let Some(msg) = client.stream().next().await {
-            println!("Received {:?}", msg);
         }
     }
 }
+
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+//
+//     //#[tokio::test]
+//     async fn it_works() {
+//         let client = Client::new().expect("Client doesn't build");
+//
+//         while let Some(msg) = client.stream().next().await {
+//             println!("Received {:?}", msg);
+//         }
+//     }
+// }

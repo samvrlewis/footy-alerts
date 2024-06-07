@@ -8,7 +8,7 @@ use axum::{
     Json, Router,
 };
 use event_processor::processor::Processor;
-use futures_util::StreamExt;
+use futures_util::{pin_mut, StreamExt};
 use notifier::Notifier;
 use serde::Deserialize;
 use squiggle::{event, rest, types::Team};
@@ -18,10 +18,13 @@ use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
 async fn event_task(store: Store, notifier: Notifier) -> Result<(), Box<dyn Error + Send + Sync>> {
     let rest_client = rest::Client::new("sam.vr.lewis@gmail.com - footyalerts")?;
-    let event_client = event::client::Client::new("sam.vr.lewis@gmail.com - footyalerts")?;
+    let mut event_client = event::client::Client::new("sam.vr.lewis@gmail.com - footyalerts")?;
     let event_processor = Processor::new(store, rest_client, notifier);
+    let stream = event_client.stream();
 
-    while let Some(Ok(event)) = event_client.stream().next().await {
+    pin_mut!(stream);
+
+    while let Some(Ok(event)) = stream.next().await {
         if let Err(err) = event_processor.process_event(event).await {
             tracing::error!(?err, "Error ingesting event");
         }
