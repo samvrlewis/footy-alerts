@@ -16,6 +16,12 @@ use store::Store;
 use tokio::time::sleep;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
+#[derive(Clone)]
+struct SharedState {
+    store: Store,
+    notifier: Notifier,
+}
+
 async fn event_task(store: Store, notifier: Notifier) -> Result<(), Box<dyn Error + Send + Sync>> {
     let rest_client = rest::Client::new("sam.vr.lewis@gmail.com - footyalerts")?;
     let mut event_client = event::client::Client::new("sam.vr.lewis@gmail.com - footyalerts")?;
@@ -33,21 +39,26 @@ async fn event_task(store: Store, notifier: Notifier) -> Result<(), Box<dyn Erro
     Ok(())
 }
 
-#[derive(Clone)]
-struct SharedState {
-    store: Store,
-    notifier: Notifier,
+fn init_tracing() {
+    if env::var("LOG_FORMAT").is_ok_and(|format| format == "json") {
+        tracing_subscriber::fmt()
+            .json()
+            .with_max_level(tracing::Level::DEBUG)
+            .init();
+    } else {
+        tracing_subscriber::fmt()
+            .with_max_level(tracing::Level::DEBUG)
+            .init();
+    }
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::TRACE)
-        .init();
-
     if let Err(err) = dotenvy::dotenv() {
         tracing::info!(error = ?err, "Error loading dotenv" );
     }
+
+    init_tracing();
 
     let store = Store::new(&env::var("DATABASE_URL").expect("Database URL not found")).await?;
     let notifier = Notifier::new(
