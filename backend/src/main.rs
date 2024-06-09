@@ -68,10 +68,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         tracing::info!(error = ?err, "Error loading dotenv" );
     }
 
-    // sentry needs to be initialized before we start tokio
-    let _sentry = env::var("SENTRY_DSN").ok().map(|url| init_sentry(&url));
-
     init_tracing();
+
+    // sentry needs to be initialized before we start tokio
+    let sentry = env::var("SENTRY_DSN").ok().map(|url| init_sentry(&url));
+    tracing::info!(tracing = sentry.is_some(), "Running with tracing");
 
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
