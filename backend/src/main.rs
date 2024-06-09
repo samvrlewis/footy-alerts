@@ -10,6 +10,7 @@ use axum::{
 use event_processor::processor::Processor;
 use futures_util::{pin_mut, StreamExt};
 use notifier::Notifier;
+use sentry::ClientInitGuard;
 use serde::Deserialize;
 use squiggle::{event, rest, types::Team};
 use store::Store;
@@ -52,14 +53,34 @@ fn init_tracing() {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+fn init_sentry(sentry_url: &str) -> ClientInitGuard {
+    sentry::init((
+        sentry_url,
+        sentry::ClientOptions {
+            release: sentry::release_name!(),
+            ..Default::default()
+        },
+    ))
+}
+
+fn main() -> Result<(), Box<dyn Error>> {
     if let Err(err) = dotenvy::dotenv() {
         tracing::info!(error = ?err, "Error loading dotenv" );
     }
 
+    // sentry needs to be initialized before we start tokio
+    let _sentry = env::var("SENTRY_DSN").ok().map(|url| init_sentry(&url));
+
     init_tracing();
 
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async { async_main().await })
+}
+
+async fn async_main() -> Result<(), Box<dyn Error>> {
     let store = Store::new(&env::var("DATABASE_URL").expect("Database URL not found")).await?;
     let notifier = Notifier::new(
         store.clone(),
