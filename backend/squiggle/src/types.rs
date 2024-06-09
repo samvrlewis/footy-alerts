@@ -47,7 +47,7 @@ pub enum Team {
 pub enum TimeStr {
     #[serde(rename = "1/4 Time")]
     EndOfFirstQuarter,
-    #[serde(rename = "2/4 Time")]
+    #[serde(rename = "1/2 Time")]
     EndOfSecondQuarter,
     #[serde(rename = "3/4 Time")]
     EndOfThirdQuarter,
