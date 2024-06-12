@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use axum::{
     extract::{Query, Request, State},
     http::StatusCode,
@@ -9,7 +11,14 @@ use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
 use serde::Deserialize;
 use squiggle::{rest::types::Game, types::Team};
 use store::Store;
-use tower_http::{cors::CorsLayer, trace::TraceLayer};
+use tower_http::{
+    compression::CompressionLayer,
+    cors::CorsLayer,
+    request_id::MakeRequestUuid,
+    timeout::TimeoutLayer,
+    trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
+    ServiceBuilderExt,
+};
 
 use crate::{api_error::ApiError, api_response::ApiResponse};
 
@@ -29,10 +38,24 @@ pub fn create_router(store: Store, notifier: Notifier) -> Router {
         .route("/subscription", post(create_subscription))
         .route("/test_notification", post(test_notification))
         .with_state(state)
-        .layer(NewSentryLayer::<Request>::new_from_top())
-        .layer(SentryHttpLayer::with_transaction())
-        .layer(TraceLayer::new_for_http())
-        .layer(CorsLayer::permissive())
+        .layer(
+            tower::ServiceBuilder::new()
+                .set_x_request_id(MakeRequestUuid)
+                .layer(
+                    TraceLayer::new_for_http()
+                        .make_span_with(DefaultMakeSpan::new().include_headers(true))
+                        .on_response(DefaultOnResponse::new().include_headers(true)),
+                )
+                .propagate_x_request_id()
+                .layer(TimeoutLayer::new(Duration::from_secs(30)))
+                .layer(NewSentryLayer::<Request>::new_from_top())
+                .layer(SentryHttpLayer::with_transaction())
+                .layer(CorsLayer::permissive().allow_origin([
+                    "https://footyalerts.fyi".parse().unwrap(),
+                    "http://localhost:5173".parse().unwrap(),
+                ]))
+                .layer(CompressionLayer::new()),
+        )
 }
 
 async fn health() -> &'static str {
