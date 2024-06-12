@@ -21,9 +21,9 @@
 		class="items-start justify-center gap-x-5 rounded-lg p-4 sm:p-6 md:grid md:grid-cols-1 md:p-8 lg:grid-cols-2 xl:grid-cols-2"
 	>
 		<div class="col-span-1 mb-4 grid items-start gap-5 lg:col-span-2">
-			<h1 class="text-xl font-medium md:mb-0">
+			<h1 class="flex items-center text-xl font-medium md:mb-0">
 				<span class="inline-flex items-center">
-					<img src="android-chrome-384x384.png" alt="Share icon" class="relative top-2 h-8" />
+					<img src="android-chrome-384x384.png" alt="Share icon" class="h-8" />
 				</span>&nbsp; Footy Alerts
 			</h1>
 		</div>
