@@ -2,6 +2,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use sentry::Hub;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ApiError {
@@ -17,6 +18,7 @@ pub enum ApiError {
 
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
+        Hub::current().capture_error(&self);
         StatusCode::INTERNAL_SERVER_ERROR.into_response()
     }
 }
