@@ -22,7 +22,9 @@
 	>
 		<div class="col-span-1 mb-4 grid items-start gap-5 lg:col-span-2">
 			<h1 class="text-xl font-medium md:mb-0">
-				<img src="favicon-32x32.png" class="inline" alt="icon" />&nbsp; Footy Alerts
+				<span class="inline-flex items-center">
+					<img src="android-chrome-384x384.png" alt="Share icon" class="relative top-2 h-8" />
+				</span>&nbsp; Footy Alerts
 			</h1>
 		</div>
 		<div class="grid items-start lg:col-span-1">

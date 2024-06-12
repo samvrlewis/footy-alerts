@@ -7,7 +7,7 @@ self.addEventListener('push', (event) => {
 	const options = {
 		body: event.data.text(),
 		icon: '/apple-touch-icon.png',
-		badge: '/favicon-32x32.png'
+		badge: '/android-chrome-192x192.png'
 	};
 	console.log('Notification');
 	event.waitUntil(self.registration.showNotification('Footy Alerts', options));
