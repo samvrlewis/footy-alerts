@@ -120,11 +120,7 @@ async fn test_notification(
 ) -> Result<ApiResponse<()>, ApiError> {
     let endpoint =
         urlencoding::decode(&params.endpoint).map_err(ApiError::SubscriptionUrlDecoding)?;
-    state
-        .notifier
-        .send_test_notification(&endpoint)
-        .await
-        .unwrap();
+    state.notifier.send_test_notification(&endpoint).await?;
 
     tracing::debug!("Sending test notification for {}", endpoint);
     Ok(ApiResponse::new((), StatusCode::OK))

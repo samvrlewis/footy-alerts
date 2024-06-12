@@ -48,7 +48,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
-        .unwrap()
+        .expect("Tokio couldn't build")
         .block_on(async { async_main().await })
 }
 
@@ -67,7 +67,10 @@ async fn async_main() -> Result<(), Box<dyn Error>> {
     let router = create_router(store, notifier);
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
 
-    tracing::debug!("listening on {}", listener.local_addr().unwrap());
+    tracing::debug!(
+        "listening on {}",
+        listener.local_addr().expect("Couldn't get local addr")
+    );
     axum::serve(listener, router).await?;
 
     Ok(())

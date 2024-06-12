@@ -11,6 +11,8 @@ pub enum ApiError {
     GameConversion(serde_json::error::Error),
     #[error("Error decoding query string for subscription: {0}")]
     SubscriptionUrlDecoding(std::string::FromUtf8Error),
+    #[error("Notifier: {0}")]
+    Notifier(#[from] notifier::Error),
 }
 
 impl IntoResponse for ApiError {
