@@ -53,6 +53,7 @@ pub fn create_router(store: Store, notifier: Notifier) -> Router {
                 .layer(CorsLayer::permissive().allow_origin([
                     "https://footyalerts.fyi".parse().unwrap(),
                     "http://localhost:5173".parse().unwrap(),
+                    "http://127.0.0.1:5173".parse().unwrap(),
                 ]))
                 .layer(CompressionLayer::new()),
         )
