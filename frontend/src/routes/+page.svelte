@@ -1,7 +1,19 @@
 <script lang="ts">
-	import { CardsAlertSettings, CardsScores, CardsAbout } from './(components)/index.js';
+	import {
+		CardsAlertSettings,
+		CardsScores,
+		CardsAbout,
+		CardsIosSettings,
+		isIOSWithNotifications
+	} from './(components)/index.js';
+	import { onMount } from 'svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Toaster } from '$lib/components/ui/sonner';
+	let needs_pin = false;
+
+	onMount(async () => {
+		needs_pin = isIOSWithNotifications();
+	});
 </script>
 
 <div class="container mx-auto px-4 sm:px-6 md:max-w-7xl md:px-8">
@@ -14,9 +26,15 @@
 			</h1>
 		</div>
 		<div class="grid items-start lg:col-span-1">
+			{#if needs_pin}
+				<div class="mb-4 sm:mb-4">
+					<CardsIosSettings />
+				</div>
+			{/if}
 			<div class="mb-4 sm:mb-4">
 				<CardsAlertSettings />
 			</div>
+
 			<div class="hidden lg:block">
 				<CardsAbout />
 			</div>

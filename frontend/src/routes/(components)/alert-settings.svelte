@@ -1,3 +1,14 @@
+<script lang="ts" context="module">
+	function isIOS(): boolean {
+		const userAgent = window.navigator.userAgent;
+		return /iPad|iPhone|iPod/.test(userAgent) && !(window as any).MSStream;
+	}
+
+	export function isIOSWithoutNotifications(): boolean {
+		return !('Notification' in window) && isIOS();
+	}
+</script>
+
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
@@ -22,6 +33,9 @@
 		label: 'All',
 		value: 'null'
 	};
+
+	let iOSAlert = false;
+	let notificationsAlert = false;
 
 	const options = [
 		{ value: 'null', label: 'All' },
@@ -92,6 +106,20 @@
 			toast.error('API error sending test notification', {
 				description: String(error)
 			});
+		}
+	}
+
+	async function savePreferences() {
+		if (!('Notification' in window)) {
+			if (isIOS()) {
+				iOSAlert = true;
+			} else {
+				toast.warning('Push notification error', {
+					description: 'Push notifications are not available in your browser!'
+				});
+			}
+		} else {
+			notificationsAlert = true;
 		}
 	}
 
@@ -214,10 +242,19 @@
 		</div>
 	</Card.Content>
 	<Card.Footer>
-		<AlertDialog.Root>
-			<AlertDialog.Trigger>
-				<Button variant="destructive">Save preferences</Button>
-			</AlertDialog.Trigger>
+		<div class="w-full space-y-1">
+			<Button variant="destructive" class="w-full" on:click={savePreferences}
+				>Save preferences</Button
+			>
+
+			{#if notificationsEndpoint}
+				<Button class="w-full" variant="outline" on:click={sendTestNotification}
+					>Send test notification</Button
+				>
+			{/if}
+		</div>
+		<AlertDialog.Root bind:open={notificationsAlert}>
+			<AlertDialog.Trigger />
 			<AlertDialog.Content>
 				<AlertDialog.Header>
 					<AlertDialog.Title>Enable Notifications</AlertDialog.Title>
@@ -231,10 +268,24 @@
 				</AlertDialog.Footer>
 			</AlertDialog.Content>
 		</AlertDialog.Root>
-		{#if notificationsEndpoint}
-			<Button class="ml-2" variant="outline" on:click={sendTestNotification}
-				>Send test notification</Button
-			>
-		{/if}
 	</Card.Footer>
 </Card.Root>
+
+<div class="hidden">
+	<AlertDialog.Root bind:open={iOSAlert}>
+		<AlertDialog.Trigger />
+		<AlertDialog.Content>
+			<AlertDialog.Header>
+				<AlertDialog.Title>Alerts on iOS</AlertDialog.Title>
+				<AlertDialog.Description>
+					For notifications to trigger on iOS, Footy Alerts needs to be added as a home screen
+					application. To do so hit the "share" button the "add to home screen". Once done, open
+					FootyAlerts and save alert preferences.
+				</AlertDialog.Description>
+			</AlertDialog.Header>
+			<AlertDialog.Footer>
+				<AlertDialog.Cancel>OK</AlertDialog.Cancel>
+			</AlertDialog.Footer>
+		</AlertDialog.Content>
+	</AlertDialog.Root>
+</div>

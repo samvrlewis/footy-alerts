@@ -15,6 +15,7 @@
 	});
 
 	onMount(async () => {
+		// todo: Run on a timer
 		try {
 			const response = await fetch(`${PUBLIC_API_BASE_URL}/games`);
 			const data = await response.json();
