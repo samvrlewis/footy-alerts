@@ -12,3 +12,8 @@ self.addEventListener('push', (event) => {
 	console.log('Notification');
 	event.waitUntil(self.registration.showNotification('Footy Alerts', options));
 });
+
+self.addEventListener('notificationclick', function (event) {
+	event.notification.close();
+	event.waitUntil(clients.openWindow('https://footyalerts.fyi'));
+});
