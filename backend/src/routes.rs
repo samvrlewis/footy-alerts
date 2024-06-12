@@ -1,10 +1,11 @@
 use axum::{
-    extract::{Query, State},
+    extract::{Query, Request, State},
     http::StatusCode,
     routing::{get, post},
     Json, Router,
 };
 use notifier::Notifier;
+use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
 use serde::Deserialize;
 use squiggle::{rest::types::Game, types::Team};
 use store::Store;
@@ -28,6 +29,8 @@ pub fn create_router(store: Store, notifier: Notifier) -> Router {
         .route("/subscription", post(create_subscription))
         .route("/test_notification", post(test_notification))
         .with_state(state)
+        .layer(NewSentryLayer::<Request>::new_from_top())
+        .layer(SentryHttpLayer::with_transaction())
         .layer(TraceLayer::new_for_http())
         .layer(CorsLayer::permissive())
 }

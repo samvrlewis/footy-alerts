@@ -8,20 +8,20 @@ use std::{env, error::Error};
 use notifier::Notifier;
 use sentry::ClientInitGuard;
 use store::Store;
+use tracing_subscriber::{fmt, layer::SubscriberExt};
 
 use crate::{events::start_event_task, routes::create_router};
 
 fn init_tracing() {
-    if env::var("LOG_FORMAT").is_ok_and(|format| format == "json") {
-        tracing_subscriber::fmt()
-            .json()
+    tracing::subscriber::set_global_default(
+        fmt::Subscriber::builder()
+            // subscriber configuration
             .with_max_level(tracing::Level::DEBUG)
-            .init();
-    } else {
-        tracing_subscriber::fmt()
-            .with_max_level(tracing::Level::DEBUG)
-            .init();
-    }
+            .finish()
+            // add additional writers
+            .with(sentry::integrations::tracing::layer()),
+    )
+    .expect("Unable to set global tracing subscriber");
 }
 
 fn init_sentry(sentry_url: &str) -> ClientInitGuard {
@@ -29,6 +29,7 @@ fn init_sentry(sentry_url: &str) -> ClientInitGuard {
         sentry_url,
         sentry::ClientOptions {
             release: sentry::release_name!(),
+            traces_sample_rate: 1.0,
             ..Default::default()
         },
     ))
