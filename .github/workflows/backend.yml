@@ -4,8 +4,8 @@ on:
   push:
     paths:
       - 'backend/**'
-      branches:
-        - '**' # Trigger on all branches for build and test
+    branches:
+      - '**' # Trigger on all branches for build and test
 
 jobs:
   build-test:
