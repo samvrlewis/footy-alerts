@@ -7,7 +7,7 @@ use axum::{
     Json, Router,
 };
 use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use squiggle::{rest::types::Game, types::Team};
 use tower_http::{
     compression::CompressionLayer,
@@ -81,10 +81,29 @@ struct Params {
     endpoint: String,
 }
 
+#[derive(Serialize)]
+struct SubscriptionOptions {
+    team: Option<Team>,
+    close_games: bool,
+    final_scores: bool,
+    quarter_scores: bool,
+}
+
+impl From<crate::store::types::Subscription> for SubscriptionOptions {
+    fn from(value: crate::store::types::Subscription) -> Self {
+        Self {
+            team: value.team,
+            close_games: value.close_games,
+            final_scores: value.final_scores,
+            quarter_scores: value.quarter_scores,
+        }
+    }
+}
+
 async fn get_subscription(
     State(state): State<SharedState>,
     Query(params): Query<Params>,
-) -> Result<ApiResponse<Option<crate::store::types::Subscription>>, ApiError> {
+) -> Result<ApiResponse<Option<SubscriptionOptions>>, ApiError> {
     let endpoint =
         urlencoding::decode(&params.endpoint).map_err(ApiError::SubscriptionUrlDecoding)?;
     let subscription = state.store.get_subscription_for_endpoint(&endpoint).await?;
@@ -93,7 +112,7 @@ async fn get_subscription(
 
     let response = match subscription {
         None => ApiResponse::new(None, StatusCode::NOT_FOUND),
-        Some(subscription) => ApiResponse::new(Some(subscription), StatusCode::OK),
+        Some(subscription) => ApiResponse::new(Some(subscription.into()), StatusCode::OK),
     };
 
     Ok(response)
