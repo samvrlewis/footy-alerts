@@ -20,6 +20,7 @@
 	import { PUBLIC_API_BASE_URL } from '$env/static/public';
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
+	import Reload from 'svelte-radix/Reload.svelte';
 
 	const dispatch = createEventDispatcher();
 
@@ -36,6 +37,7 @@
 
 	let iOSAlert = false;
 	let notificationsAlert = false;
+	let submittingSubscription = false;
 
 	const options = [
 		{ value: 'null', label: 'All' },
@@ -124,6 +126,7 @@
 	}
 
 	async function acceptNotifications() {
+		submittingSubscription = true;
 		const permission = await Notification.requestPermission();
 
 		if (permission != 'granted') {
@@ -134,6 +137,8 @@
 					onClick: () => window.open('https://support.google.com/chrome/answer/3220216', '_blank')
 				}
 			});
+			submittingSubscription = false;
+			return;
 		}
 
 		const reg = await navigator.serviceWorker.ready;
@@ -186,6 +191,9 @@
 				description: String(error)
 			});
 		}
+
+		submittingSubscription = false;
+		return;
 	}
 </script>
 
@@ -243,8 +251,11 @@
 	</Card.Content>
 	<Card.Footer>
 		<div class="w-full space-y-1">
-			<Button variant="destructive" class="w-full" on:click={savePreferences}
-				>Save preferences</Button
+			<Button variant="destructive" class="w-full" on:click={savePreferences}>
+				{#if submittingSubscription}
+					<Reload class="mr-2 h-4 w-4 animate-spin" />
+				{/if}
+				Save preferences</Button
 			>
 
 			{#if notificationsEndpoint}

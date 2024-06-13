@@ -67,7 +67,7 @@
 <Card.Root>
 	<Card.Header>
 		<Card.Title>Scores</Card.Title>
-		<Card.Description>Current round scores</Card.Description>
+		<Card.Description>Latest round scores</Card.Description>
 	</Card.Header>
 	<Card.Content>
 		<div>
