@@ -40,6 +40,10 @@ jobs:
       run:
         working-directory: ./backend
 
+    concurrency:
+      group: deploy
+      cancel-in-progress: true
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
