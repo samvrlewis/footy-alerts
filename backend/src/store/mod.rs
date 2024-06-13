@@ -2,8 +2,7 @@ pub mod types;
 
 use sqlx::{migrate::MigrateError, SqlitePool};
 use squiggle::types::{GameId, Team};
-
-use crate::types::{Game, Notification, Subscription};
+use types::{Game, Notification, Subscription};
 
 #[derive(Debug, thiserror::Error)]
 pub enum InitError {
@@ -17,8 +16,6 @@ pub enum InitError {
 pub enum Error {
     #[error("Database error {0}")]
     Database(#[from] sqlx::Error),
-    #[error("Game couldn't be found {0}")]
-    NoGameFound(GameId),
 }
 
 #[derive(Clone)]
@@ -45,19 +42,19 @@ impl Store {
             RETURNING *
             ",
         )
-        .bind(game.id)
-        .bind(game.round)
-        .bind(game.complete)
-        .bind(game.home_team)
-        .bind(game.away_team)
-        .bind(game.home_score)
-        .bind(game.away_score)
-        .bind(game.timestr)
-        .bind(game.year)
-        .bind(game.date)
-        .bind(game.tz)
-        .fetch_one(&mut *conn)
-        .await?;
+            .bind(game.id)
+            .bind(game.round)
+            .bind(game.complete)
+            .bind(game.home_team)
+            .bind(game.away_team)
+            .bind(game.home_score)
+            .bind(game.away_score)
+            .bind(game.timestr)
+            .bind(game.year)
+            .bind(game.date)
+            .bind(game.tz)
+            .fetch_one(&mut *conn)
+            .await?;
 
         Ok(game)
     }

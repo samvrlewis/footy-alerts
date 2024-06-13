@@ -1,20 +1,24 @@
+/// Processes events from the squiggle API to decide whether a notification should be sent
 use futures::future::try_join_all;
-use notifier::{Notification, Notifier, Quarter};
 use squiggle::{
     event::types::Event,
     rest::{types::Game, Client},
     types::{GameId, TimeStr},
 };
-use store::{types::Game as DbGame, Store};
+
+use crate::{
+    notifier::{Notification, Notifier, Quarter},
+    store::{types::Game as DbGame, Store},
+};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("Squiggle API: {0}")]
     SquiggleApi(#[from] squiggle::rest::Error),
     #[error("Store: {0}")]
-    Store(#[from] store::Error),
+    Store(#[from] crate::store::Error),
     #[error("Notifier: {0}")]
-    Notifier(#[from] notifier::Error),
+    Notifier(#[from] crate::notifier::Error),
     #[error("Deser: {0}")]
     Deser(#[from] serde_json::Error),
 }
@@ -128,7 +132,7 @@ impl Processor {
             return Ok(());
         };
 
-        let db_notification = store::types::Notification::from(&notification);
+        let db_notification = crate::store::types::Notification::from(&notification);
 
         // check if we've already sent a notification
         if self

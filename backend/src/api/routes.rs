@@ -6,11 +6,9 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use notifier::Notifier;
 use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
 use serde::Deserialize;
 use squiggle::{rest::types::Game, types::Team};
-use store::Store;
 use tower_http::{
     compression::CompressionLayer,
     cors::CorsLayer,
@@ -20,7 +18,11 @@ use tower_http::{
     ServiceBuilderExt,
 };
 
-use crate::{api_error::ApiError, api_response::ApiResponse};
+use crate::{
+    api::{error::ApiError, response::ApiResponse},
+    notifier::Notifier,
+    store::Store,
+};
 
 #[derive(Clone)]
 struct SharedState {
@@ -82,7 +84,7 @@ struct Params {
 async fn get_subscription(
     State(state): State<SharedState>,
     Query(params): Query<Params>,
-) -> Result<ApiResponse<Option<store::types::Subscription>>, ApiError> {
+) -> Result<ApiResponse<Option<crate::store::types::Subscription>>, ApiError> {
     let endpoint =
         urlencoding::decode(&params.endpoint).map_err(ApiError::SubscriptionUrlDecoding)?;
     let subscription = state.store.get_subscription_for_endpoint(&endpoint).await?;
@@ -118,7 +120,7 @@ struct Subscription {
     pub web_push: WebPush,
 }
 
-impl From<Subscription> for store::types::Subscription {
+impl From<Subscription> for crate::store::types::Subscription {
     fn from(value: Subscription) -> Self {
         Self {
             team: value.team,

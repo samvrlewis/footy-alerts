@@ -1,7 +1,7 @@
-mod api_error;
-mod api_response;
-mod events;
-mod routes;
+mod api;
+mod notifier;
+mod processor;
+mod store;
 
 use std::{env, error::Error};
 
@@ -10,7 +10,7 @@ use sentry::ClientInitGuard;
 use store::Store;
 use tracing_subscriber::{fmt, layer::SubscriberExt};
 
-use crate::{events::start_event_task, routes::create_router};
+use crate::api::{event_task::start_event_task, routes::create_router};
 
 fn init_tracing() {
     tracing::subscriber::set_global_default(

@@ -5,19 +5,20 @@ use squiggle::{
     rest::types::Game,
     types::{Team, TimeStr},
 };
-use store::{types::Subscription, Store};
 use web_push::{
     ContentEncoding, IsahcWebPushClient, PartialVapidSignatureBuilder, SubscriptionInfo,
     SubscriptionKeys, VapidSignatureBuilder, WebPushClient, WebPushError, WebPushMessageBuilder,
     URL_SAFE_NO_PAD,
 };
 
+use crate::store::{types::Subscription, Store};
+
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("Web push: {0}")]
     WebPush(#[from] WebPushError),
     #[error("Store: {0}")]
-    Store(#[from] store::Error),
+    Store(#[from] crate::store::Error),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -119,16 +120,16 @@ impl Notification {
     }
 }
 
-impl From<&Notification> for store::types::Notification {
+impl From<&Notification> for crate::store::types::Notification {
     fn from(value: &Notification) -> Self {
         match value {
             Notification::EndOfQuarter { quarter, .. } => match quarter {
-                Quarter::First => store::types::Notification::EndOfFirstQuarter,
-                Quarter::Second => store::types::Notification::EndOfSecondQuarter,
-                Quarter::Third => store::types::Notification::EndOfThirdQuarter,
+                Quarter::First => crate::store::types::Notification::EndOfFirstQuarter,
+                Quarter::Second => crate::store::types::Notification::EndOfSecondQuarter,
+                Quarter::Third => crate::store::types::Notification::EndOfThirdQuarter,
             },
-            Notification::EndOfGame { .. } => store::types::Notification::EndOfGame,
-            Notification::CloseGame { .. } => store::types::Notification::CloseGame,
+            Notification::EndOfGame { .. } => crate::store::types::Notification::EndOfGame,
+            Notification::CloseGame { .. } => crate::store::types::Notification::CloseGame,
         }
     }
 }
@@ -147,7 +148,7 @@ impl Notifier {
 
     #[tracing::instrument(skip(self), err)]
     pub async fn notify(&self, game: Game, notification: Notification) -> Result<(), Error> {
-        let db_notification = store::types::Notification::from(&notification);
+        let db_notification = crate::store::types::Notification::from(&notification);
         let users_to_notify = self
             .store
             .get_subscriptions_for_notification(game.home_team, game.away_team, db_notification)

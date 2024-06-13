@@ -7,13 +7,13 @@ use sentry::Hub;
 #[derive(Debug, thiserror::Error)]
 pub enum ApiError {
     #[error("Store: {0}")]
-    Store(#[from] store::Error),
+    Store(#[from] crate::store::Error),
     #[error("Error converting games from store: {0}")]
     GameConversion(serde_json::error::Error),
     #[error("Error decoding query string for subscription: {0}")]
     SubscriptionUrlDecoding(std::string::FromUtf8Error),
     #[error("Notifier: {0}")]
-    Notifier(#[from] notifier::Error),
+    Notifier(#[from] crate::notifier::Error),
 }
 
 impl IntoResponse for ApiError {

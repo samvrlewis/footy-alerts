@@ -1,12 +1,27 @@
 use std::{error::Error, fmt::Debug, time::Duration};
 
-use event_processor::processor::Processor;
 use futures_util::{pin_mut, StreamExt};
-use notifier::Notifier;
 use sentry::Hub;
 use squiggle::{event, rest};
-use store::Store;
 use tokio::{task::JoinHandle, time::sleep};
+
+use crate::{notifier::Notifier, processor::Processor, store::Store};
+
+pub fn start_event_task(event_task_store: Store, event_task_notifier: Notifier) -> JoinHandle<()> {
+    tokio::spawn(async move {
+        loop {
+            let res = event_task(event_task_store.clone(), event_task_notifier.clone()).await;
+            tracing::warn!("Event loop finished with {:?}", res);
+
+            if let Err(err) = res {
+                Hub::current().capture_error(&err);
+            }
+
+            // naive backoff for now, so we don't hammer squiggle
+            sleep(Duration::from_secs(30)).await;
+        }
+    })
+}
 
 #[derive(Debug, thiserror::Error)]
 #[error(transparent)]
@@ -30,19 +45,4 @@ async fn event_task(store: Store, notifier: Notifier) -> Result<(), EventError> 
     }
 
     Ok(())
-}
-pub fn start_event_task(event_task_store: Store, event_task_notifier: Notifier) -> JoinHandle<()> {
-    tokio::spawn(async move {
-        loop {
-            let res = event_task(event_task_store.clone(), event_task_notifier.clone()).await;
-            tracing::warn!("Event loop finished with {:?}", res);
-
-            if let Err(err) = res {
-                Hub::current().capture_error(&err);
-            }
-
-            // naive backoff for now, so we don't hammer squiggle
-            sleep(Duration::from_secs(30)).await;
-        }
-    })
 }
