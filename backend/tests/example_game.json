@@ -1,0 +1,32 @@
+{
+  "games": [
+    {
+      "is_final": 0,
+      "ateam": "St Kilda",
+      "timestr": "Full Time",
+      "id": 35740,
+      "hscore": 80,
+      "hteamid": 9,
+      "complete": 100,
+      "is_grand_final": 0,
+      "hgoals": 11,
+      "unixtime": 1712979900,
+      "abehinds": 7,
+      "ateamid": 15,
+      "ascore": 79,
+      "year": 2024,
+      "localtime": "2024-04-13 13:45:00",
+      "winner": "Greater Western Sydney",
+      "winnerteamid": 9,
+      "tz": "+10:00",
+      "venue": "Manuka Oval",
+      "hbehinds": 14,
+      "agoals": 12,
+      "roundname": "Round 5",
+      "hteam": "Greater Western Sydney",
+      "date": "2024-04-13 13:45:00",
+      "updated": "2024-04-13 16:29:08",
+      "round": 5
+    }
+  ]
+}

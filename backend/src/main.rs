@@ -1,16 +1,12 @@
-mod api;
-mod notifier;
-mod processor;
-mod store;
-
 use std::{env, error::Error};
 
-use notifier::Notifier;
+use footy_alerts::{
+    api::{event_task::start_event_task, routes::create_router},
+    notifier::Notifier,
+    store::Store,
+};
 use sentry::ClientInitGuard;
-use store::Store;
 use tracing_subscriber::{fmt, layer::SubscriberExt};
-
-use crate::api::{event_task::start_event_task, routes::create_router};
 
 fn init_tracing() {
     tracing::subscriber::set_global_default(

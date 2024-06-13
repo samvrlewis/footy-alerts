@@ -29,6 +29,7 @@ struct GamesResponse {
 pub struct Client {
     client: reqwest::Client,
     user_agent: HeaderValue,
+    base_url: String,
 }
 
 impl Client {
@@ -36,7 +37,20 @@ impl Client {
         let client = reqwest::Client::new();
         let user_agent = HeaderValue::from_str(user_agent)
             .map_err(|_err| InitError::BadUserAgent(user_agent.to_string()))?;
-        Ok(Self { client, user_agent })
+        Ok(Self {
+            client,
+            user_agent,
+            base_url: "https://api.squiggle.com.au/".to_string(),
+        })
+    }
+
+    #[must_use]
+    pub fn with_base_url(self, base_url: impl Into<String>) -> Self {
+        Self {
+            client: self.client,
+            user_agent: self.user_agent,
+            base_url: base_url.into(),
+        }
     }
 
     #[tracing::instrument(skip(self), ret, err)]
@@ -56,7 +70,7 @@ impl Client {
 
     #[tracing::instrument(skip(self), ret, err)]
     async fn fetch(&self, filter: String) -> Result<GamesResponse, Error> {
-        let url = format!("https://api.squiggle.com.au/?q={filter}");
+        let url = format!("{}?q={}", self.base_url, filter);
         let resp = self
             .client
             .get(url)

@@ -31,6 +31,10 @@ impl Store {
         Ok(Self { pool })
     }
 
+    pub fn new_from_pool(pool: SqlitePool) -> Self {
+        Self { pool }
+    }
+
     #[tracing::instrument(skip(self), ret, err)]
     pub async fn upsert_game(&self, game: Game) -> Result<Game, Error> {
         let mut conn = self.pool.acquire().await?;
@@ -188,12 +192,37 @@ impl Store {
     ) -> Result<Vec<Subscription>, Error> {
         let mut conn = self.pool.acquire().await?;
 
-        let subscriptions: Vec<Subscription> = sqlx::query_as(
+        // there's probably a nicer way to do this..
+        let mut query = String::from(
             r"
             SELECT * FROM subscriptions
-            WHERE (team = ? OR team = ? OR team IS NULL) AND (close_games = ? OR final_scores = ? OR quarter_scores = ?) AND (active = 1)
+            WHERE (team = ? OR team = ? OR team IS NULL) AND (active = 1)
            ",
-        )
+        );
+
+        let mut where_clause = vec![];
+
+        if notification.is_close_game_notification() {
+            where_clause.push(String::from("close_games = 1"))
+        }
+
+        if notification.is_quarter_notification() {
+            where_clause.push(String::from("quarter_scores = 1"))
+        }
+
+        if notification.is_full_game_notification() {
+            where_clause.push(String::from("final_scores = 1"))
+        }
+
+        let where_str = where_clause.join(" OR ");
+
+        if !where_str.is_empty() {
+            query.push_str("AND (");
+            query.push_str(&where_str);
+            query.push(')');
+        }
+
+        let subscriptions: Vec<Subscription> = sqlx::query_as(&query)
             .bind(home_team)
             .bind(away_team)
             .bind(notification.is_close_game_notification())
