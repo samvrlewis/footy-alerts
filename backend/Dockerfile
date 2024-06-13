@@ -8,6 +8,8 @@ RUN --mount=type=cache,target=/usr/local/cargo,from=rust:latest,source=/usr/loca
     --mount=type=cache,target=target \
     cargo build --release && mv ./target/release/footy-alerts ./footy-alerts
 
+ADD https://github.com/benbjohnson/litestream/releases/download/v0.3.13/litestream-v0.3.13-linux-amd64.tar.gz /tmp/litestream.tar.gz
+RUN tar -C /usr/local/bin -xzf /tmp/litestream.tar.gz
 
 # Runtime image
 FROM debian:bookworm-slim
@@ -22,6 +24,10 @@ WORKDIR /app
 
 # Get compiled binaries from builder's cargo install directory
 COPY --from=builder /usr/src/app/footy-alerts /app/footy-alerts
+COPY --from=builder /usr/local/bin/litestream /usr/local/bin/litestream
+
+# Copy Litestream configuration file & startup script.
+COPY ./litestream.yml /etc/litestream.yml
 
 # Run the app
-CMD ./footy-alerts
+CMD litestream replicate -exec "./footy-alerts"
