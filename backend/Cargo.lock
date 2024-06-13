@@ -839,7 +839,7 @@ name = "footy-alerts"
 version = "0.1.0"
 dependencies = [
  "axum",
- "base64 0.21.7",
+ "base64 0.22.0",
  "chrono",
  "chrono-tz",
  "dotenvy",
