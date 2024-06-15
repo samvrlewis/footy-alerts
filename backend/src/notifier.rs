@@ -7,8 +7,8 @@ use squiggle::{
 };
 use web_push::{
     ContentEncoding, IsahcWebPushClient, PartialVapidSignatureBuilder, SubscriptionInfo,
-    SubscriptionKeys, VapidSignatureBuilder, WebPushClient, WebPushError, WebPushMessageBuilder,
-    URL_SAFE_NO_PAD,
+    SubscriptionKeys, Urgency, VapidSignatureBuilder, WebPushClient, WebPushError,
+    WebPushMessageBuilder, URL_SAFE_NO_PAD,
 };
 
 use crate::store::{types::Subscription, Store};
@@ -211,6 +211,7 @@ impl Notifier {
         let content = notification.as_bytes();
         builder.set_payload(ContentEncoding::Aes128Gcm, content);
         builder.set_vapid_signature(signature);
+        builder.set_urgency(Urgency::High);
 
         self.client
             .send(builder.build().unwrap())
