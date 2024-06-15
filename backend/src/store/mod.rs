@@ -37,7 +37,7 @@ impl Store {
 
     #[tracing::instrument(skip(self), ret, err)]
     pub async fn upsert_game(&self, game: Game) -> Result<Game, Error> {
-        let mut conn = self.pool.acquire().await?;
+        let mut transaction = self.pool.begin().await?;
 
         let game: Game = sqlx::query_as(
             r"
@@ -57,8 +57,10 @@ impl Store {
             .bind(game.year)
             .bind(game.date)
             .bind(game.tz)
-            .fetch_one(&mut *conn)
+            .fetch_one(&mut *transaction)
             .await?;
+
+        transaction.commit().await?;
 
         Ok(game)
     }

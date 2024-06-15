@@ -179,7 +179,7 @@ impl Processor {
         Ok(db_game)
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), ret, err)]
     async fn update_game(&self, game: Game) -> Result<DbGame, Error> {
         Ok(self.store.upsert_game(game.try_into()?).await?)
     }
