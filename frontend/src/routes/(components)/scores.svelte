@@ -45,7 +45,7 @@
 			}
 		}
 
-		const datetime = new Date(date + ' ' + tz);
+		const datetime = new Date(date + tz);
 
 		if (isNaN(datetime.getTime())) {
 			return date;
