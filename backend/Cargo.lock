@@ -845,7 +845,7 @@ dependencies = [
  "dotenvy",
  "futures",
  "futures-util",
- "http 0.2.12",
+ "http 1.1.0",
  "httptest",
  "sentry",
  "serde",
