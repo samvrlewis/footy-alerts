@@ -2,7 +2,7 @@ use async_stream::stream;
 use futures::{Stream, StreamExt};
 use reqwest::Method;
 use reqwest_eventsource::{CannotCloneRequestError, EventSource, RequestBuilderExt};
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 
 use super::types::Event;
 
@@ -33,6 +33,8 @@ impl Client {
                             info!("Received welcome message");
                             continue
                         }
+
+                        debug!(message.data, "Received message");
 
                         let event: Result<Event, _> = serde_json::from_str(&message.data);
 

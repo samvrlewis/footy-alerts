@@ -38,6 +38,7 @@ async fn event_task(store: Store, notifier: Notifier) -> Result<(), EventError> 
     pin_mut!(stream);
 
     while let Some(Ok(event)) = stream.next().await {
+        tracing::info!(?event, "Processing event");
         if let Err(err) = event_processor.process_event(event).await {
             tracing::error!(?err, "Error ingesting event");
             Hub::current().capture_error(&err);
