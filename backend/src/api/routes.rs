@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{env, time::Duration};
 
 use axum::{
     extract::{Query, Request, State},
@@ -6,6 +6,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use axum_auth::AuthBearer;
 use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
 use serde::{Deserialize, Serialize};
 use squiggle::{rest::types::Game, types::Team};
@@ -21,7 +22,7 @@ use tower_http::{
 use crate::{
     api::{error::ApiError, response::ApiResponse},
     notifier::Notifier,
-    store::Store,
+    store::{Stats, Store},
 };
 
 #[derive(Clone)]
@@ -39,6 +40,7 @@ pub fn create_router(store: Store, notifier: Notifier) -> Router {
         .route("/subscription", get(get_subscription))
         .route("/subscription", post(create_subscription))
         .route("/test_notification", post(test_notification))
+        .route("/stats", get(stats))
         .with_state(state)
         .layer(
             tower::ServiceBuilder::new()
@@ -172,4 +174,20 @@ async fn test_notification(
 
     tracing::debug!("Sending test notification for {}", endpoint);
     Ok(ApiResponse::new((), StatusCode::OK))
+}
+
+#[tracing::instrument(skip(state, token), err)]
+async fn stats(
+    State(state): State<SharedState>,
+    AuthBearer(token): AuthBearer,
+) -> Result<ApiResponse<Stats>, ApiError> {
+    // simple crappy password auth
+    if token != env::var("BASIC_AUTH_PASSWORD").expect("password should be set") {
+        return Err(ApiError::Unauthorized);
+    }
+
+    Ok(ApiResponse::new(
+        state.store.get_stats().await?,
+        StatusCode::OK,
+    ))
 }

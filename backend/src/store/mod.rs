@@ -1,5 +1,8 @@
 pub mod types;
 
+use std::collections::HashMap;
+
+use serde::Serialize;
 use sqlx::{migrate::MigrateError, SqlitePool};
 use squiggle::types::{GameId, Team};
 use types::{Game, Notification, Subscription};
@@ -23,6 +26,26 @@ pub struct Store {
     pool: SqlitePool,
 }
 
+#[derive(Debug, Serialize)]
+pub struct Stats {
+    total_subscriptions: u32,
+    active_subscriptions: u32,
+    notifications_sent: u32,
+    domains: HashMap<String, u32>,
+}
+
+#[derive(sqlx::FromRow)]
+struct OverallStats {
+    total_subscriptions: u32,
+    active_subscriptions: u32,
+    notifications_sent: u32,
+}
+
+#[derive(sqlx::FromRow)]
+struct DomainCount {
+    domain: String,
+    subscriptions_count: u32,
+}
 impl Store {
     pub async fn new(url: &str) -> Result<Self, InitError> {
         let pool = SqlitePool::connect(url).await?;
@@ -252,5 +275,46 @@ impl Store {
         .await?;
 
         Ok(())
+    }
+
+    #[tracing::instrument(skip(self), err)]
+    pub async fn get_stats(&self) -> Result<Stats, Error> {
+        let mut conn = self.pool.acquire().await?;
+
+        let overall_stats: OverallStats = sqlx::query_as(
+            r#"
+            SELECT
+                (SELECT COUNT(*) FROM subscriptions) AS total_subscriptions,
+                (SELECT COUNT(*) FROM subscriptions WHERE active = 1) AS active_subscriptions,
+                (SELECT COUNT(*) FROM alerts) AS notifications_sent
+        "#,
+        )
+        .fetch_one(&mut *conn)
+        .await?;
+
+        let domain_counts: Vec<DomainCount> = sqlx::query_as(
+        r#"
+            SELECT
+                SUBSTR(endpoint, INSTR(endpoint, '//') + 2, INSTR(SUBSTR(endpoint, INSTR(endpoint, '//') + 2), '/') - 1) AS domain,
+                COUNT(*) AS subscriptions_count
+            FROM subscriptions
+            GROUP BY domain
+            ORDER BY subscriptions_count DESC
+        "#)
+            .fetch_all(&mut *conn)            .await?;
+
+        let mut domains = HashMap::new();
+        for domain_count in domain_counts {
+            domains.insert(domain_count.domain, domain_count.subscriptions_count);
+        }
+
+        let stats = Stats {
+            total_subscriptions: overall_stats.total_subscriptions,
+            active_subscriptions: overall_stats.active_subscriptions,
+            notifications_sent: overall_stats.notifications_sent,
+            domains,
+        };
+
+        Ok(stats)
     }
 }
