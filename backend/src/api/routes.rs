@@ -67,6 +67,7 @@ async fn health() -> &'static str {
     "healthy!"
 }
 
+#[tracing::instrument(skip(state), err)]
 async fn games(State(state): State<SharedState>) -> Result<ApiResponse<Vec<Game>>, ApiError> {
     let games = state.store.get_this_round_games().await?;
     let games: Vec<_> = games
@@ -102,6 +103,7 @@ impl From<crate::store::types::Subscription> for SubscriptionOptions {
     }
 }
 
+#[tracing::instrument(skip(state, params), err)]
 async fn get_subscription(
     State(state): State<SharedState>,
     Query(params): Query<Params>,
@@ -155,6 +157,7 @@ impl From<Subscription> for crate::store::types::Subscription {
     }
 }
 
+#[tracing::instrument(skip(state, subscription), err)]
 async fn create_subscription(
     State(state): State<SharedState>,
     Json(subscription): Json<Subscription>,
@@ -164,6 +167,7 @@ async fn create_subscription(
     Ok(ApiResponse::new((), StatusCode::CREATED))
 }
 
+#[tracing::instrument(skip(state, params), err)]
 async fn test_notification(
     State(state): State<SharedState>,
     Query(params): Query<Params>,
