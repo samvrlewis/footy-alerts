@@ -243,7 +243,7 @@
 			<Label for="close" class="flex flex-col space-y-1">
 				<span>Close game alerts</span>
 				<span class="text-xs font-normal leading-snug text-muted-foreground">
-					Notifications when the scores in the game are close.
+					Notifications on the scores being close at the end of the game.
 				</span>
 			</Label>
 			<Switch bind:checked={closeGamesEnabled} id="close_game" aria-label="Close" />
