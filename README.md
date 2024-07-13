@@ -1,19 +1,23 @@
 # Footy Alerts
-(Currently a WIP!)
 
-An attempt to replicate the alerts & notifications that used to be sent by the FootyLive app (before it stopped working). 
-Because, in today's fast paced world, it's important to get up to date football scores when and as they happen!
+A progressive web app that sends notifications for AFL football games. Available live at [**footyalerts.fyi**](https://footyalerts.fyi)!
 
-The intention, once complete, is to have a website where people can go and register for notifications for:
+# Architecture
 
-- End of quarter scores
-- End of match scores
-- Close game alerts
-- Filtered by all games or only games with a certain team playing
+## Backend
+The backend is in Rust, using [Axum](https://github.com/tokio-rs/axum) to serve an API that allows users to register for notifications and allows them to see up to date game scores.
 
-## High Level Design
-- A front end where people can go to register for notifications they're interested in
-- A webserver that will store the notification settings for users
-[webpush notifications](https://pqvst.com/2023/11/21/web-push-notifications/).
-- A long running task that consumes events from the [squiggle API](https://api.squiggle.com.au/#section_event) for game
-  events and then sends out notifications when necessary
+The Axum server runs a long running task that subscribes to the [Squiggle Event API](https://api.squiggle.com.au/) in order to get up to date game events.
+
+Hosted on [fly.io](https://fly.io). Storage is to a SQLite database that is constantly replicated to Cloudflare R2 using [Litestream](https://github.com/benbjohnson/litestream). 
+
+## Frontend
+Frontend is built using [Svelte](https://svelte.dev/) with components from [Shadcn Svelte](https://www.shadcn-svelte.com/).
+
+# Possible Improvements
+
+- Native app
+  - Unfortunately web push seems to be poorly supported by most browsers, alerts can take some time to be delivered. It's also a hassle to install the app on iOS.
+- Multi subscriptions
+  - Would be nice to be able to subscribe to, for example, all Geelong game events and also all close game events.
+
