@@ -200,7 +200,7 @@
 <Card.Root>
 	<Card.Header>
 		<Card.Title>Alert Settings</Card.Title>
-		<Card.Description>Manage which alerts you receive.</Card.Description>
+		<Card.Description>Manage which push notifications you receive.</Card.Description>
 	</Card.Header>
 	<Card.Content class="grid gap-6">
 		<div class="flex items-center justify-between space-x-2">

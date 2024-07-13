@@ -1,6 +1,6 @@
 # Footy Alerts
 
-A progressive web app that sends notifications for AFL football games. Available live at [**footyalerts.fyi**](https://footyalerts.fyi)!
+A progressive web app that sends push notifications for AFL football games. Available live at [**footyalerts.fyi**](https://footyalerts.fyi)!
 
 ![screenshot of footyalerts.fyi](footyalerts.png)
 
