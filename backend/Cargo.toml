@@ -14,7 +14,7 @@ edition = "2021"
 [dependencies]
 squiggle = { path = "squiggle" }
 
-axum = "0.7.5"
+axum = "0.7.7"
 axum-auth = { version = "0.7.0", features = ["auth-bearer"] }
 base64 = "0.22.1"
 chrono = "0.4.38"
@@ -30,7 +30,7 @@ sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio-native-tls"] }
 thiserror = "1.0.63"
 tokio = { version = "1.40.0", features = ["macros"] }
 tower = "0.5.0"
-tower-http = { version = "0.6.0", features = ["tracing", "trace", "cors", "compression-full", "request-id", "timeout", "util"] }
+tower-http = { version = "0.6.1", features = ["tracing", "trace", "cors", "compression-full", "request-id", "timeout", "util"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3"}
 urlencoding = "2.1"
