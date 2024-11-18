@@ -36,12 +36,12 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"bits-ui": "^0.21.15",
+		"bits-ui": "^0.21.16",
 		"clsx": "^2.1.1",
 		"mode-watcher": "^0.4.1",
-		"svelte-radix": "^1.1.1",
+		"svelte-radix": "^2.0.1",
 		"svelte-sonner": "^0.3.28",
-		"tailwind-merge": "^2.5.2",
-		"tailwind-variants": "^0.2.1"
+		"tailwind-merge": "^2.5.4",
+		"tailwind-variants": "^0.3.0"
 	}
 }
